@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Industrial Exhaust Duct Sizing & Balance-by-Design (ACGIH-style)</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="app-header">
+      <h1>Industrial Exhaust Duct Sizing & Balance-by-Design</h1>
+      <p>Client-side ACGIH-style Velocity Pressure Method worksheet with transparent branch, segment, and junction calculations.</p>
+    </header>
+
+    <main class="layout">
+      <section class="panel full-width">
+        <div class="panel-header">
+          <h2>Inputs Panel</h2>
+          <button id="addBranch">+ Add Branch</button>
+        </div>
+        <div class="grid two-col">
+          <label>Air Density Correction Factor
+            <input id="densityFactor" type="number" value="1" step="0.01" min="0.5" />
+          </label>
+        </div>
+        <div class="tip-row">
+          <small>Enter F and K coefficients from your engineering references. Presets shown are not exhaustive and are for convenience only.</small>
+        </div>
+        <div id="branchEditor"></div>
+        <button id="calculate">Calculate</button>
+      </section>
+
+      <section class="panel">
+        <h2>Results Panel</h2>
+        <div class="output-grid">
+          <article><h3>Governing Leg</h3><p id="governingLeg">—</p></article>
+          <article><h3>Fan SP Target</h3><p id="fanSp">—</p></article>
+          <article><h3>Total System Flow</h3><p id="totalFlow">—</p></article>
+          <article><h3>Junction SP Ratio</h3><p id="ratio">—</p></article>
+          <article class="wide"><h3>Pressure Ratio Check</h3><p id="ratioFlag" class="flag">—</p></article>
+        </div>
+      </section>
+
+      <section class="panel full-width">
+        <h2>Engineering Calculation Chart (ACGIH-style VP Method)</h2>
+        <div class="table-wrap">
+          <table class="calc-table">
+            <thead>
+              <tr>
+                <th>Branch</th>
+                <th>Line</th>
+                <th>Description</th>
+                <th>Flow (cfm)</th>
+                <th>Duct Size</th>
+                <th>Eq D (in)</th>
+                <th>Velocity (fpm)</th>
+                <th>VP_d</th>
+                <th>VP_s</th>
+                <th>Length/F_s</th>
+                <th>Friction/VP</th>
+                <th>Elbow/VP</th>
+                <th>Entry/VP</th>
+                <th>Special/VP</th>
+                <th>Duct Loss/VP</th>
+                <th>Duct Loss</th>
+                <th>Seg SP Loss</th>
+                <th>Cumulative SP</th>
+              </tr>
+            </thead>
+            <tbody id="calcChartBody"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <small>Engineering support tool only. Validate final designs against ACGIH references, code requirements, and equipment performance data.</small>
+    </footer>
+
+    <script src="calc.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
