@@ -1,0 +1,12 @@
+{
+  "name": "acgih-duct-balance",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Client-side industrial exhaust duct sizing and ACGIH-style balance-by-design worksheet",
+  "scripts": {
+    "parse": "node --check app.js && node --check calc.js",
+    "lint": "node scripts/lint.js",
+    "check:load": "bash scripts/smoke-load.sh",
+    "check": "npm run parse && npm run lint && npm run check:load"
+  }
+}
