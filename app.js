@@ -73,6 +73,17 @@ function format(value, digits = 3) {
   return Number.isFinite(value) ? value.toFixed(digits) : '—';
 }
 
+
+function getValue(container, field, fallback = '') {
+  const input = container.querySelector(`[data-field="${field}"]`);
+  return input ? input.value : fallback;
+}
+
+function getChecked(container, field, fallback = false) {
+  const input = container.querySelector(`[data-field="${field}"]`);
+  return input ? input.checked : fallback;
+}
+
 function updateStateFromDom() {
   state.densityFactor = num(document.getElementById('densityFactor').value, 1);
 
@@ -84,13 +95,13 @@ function updateStateFromDom() {
       return;
     }
 
-    branch.name = branchEl.querySelector('[data-field="name"]').value;
-    branch.description = branchEl.querySelector('[data-field="description"]').value;
-    branch.designCfm = num(branchEl.querySelector('[data-field="designCfm"]').value);
-    branch.hood.slotVp = num(branchEl.querySelector('[data-field="hood-slotVp"]').value);
-    branch.hood.fs = num(branchEl.querySelector('[data-field="hood-fs"]').value);
-    branch.hood.fd = num(branchEl.querySelector('[data-field="hood-fd"]').value);
-    branch.hood.accelMode = num(branchEl.querySelector('[data-field="hood-accelMode"]').value);
+    branch.name = getValue(branchEl, 'name');
+    branch.description = getValue(branchEl, 'description');
+    branch.designCfm = num(getValue(branchEl, 'designCfm'), 0);
+    branch.hood.slotVp = num(getValue(branchEl, 'hood-slotVp'), 0);
+    branch.hood.fs = num(getValue(branchEl, 'hood-fs'), 0);
+    branch.hood.fd = num(getValue(branchEl, 'hood-fd'), 0);
+    branch.hood.accelMode = num(getValue(branchEl, 'hood-accelMode'), 0);
 
     const segmentEls = Array.from(branchEl.querySelectorAll('[data-segment-index]'));
     segmentEls.forEach((segmentEl) => {
@@ -99,21 +110,22 @@ function updateStateFromDom() {
       if (!segment) {
         return;
       }
-      segment.description = segmentEl.querySelector('[data-field="description"]').value;
-      segment.shape = segmentEl.querySelector('[data-field="shape"]').value;
-      segment.diameterIn = num(segmentEl.querySelector('[data-field="diameterIn"]').value);
-      segment.widthIn = num(segmentEl.querySelector('[data-field="widthIn"]').value);
-      segment.heightIn = num(segmentEl.querySelector('[data-field="heightIn"]').value);
-      segment.cfm = num(segmentEl.querySelector('[data-field="cfm"]').value);
-      segment.lengthFt = num(segmentEl.querySelector('[data-field="lengthFt"]').value);
-      segment.frictionMode = segmentEl.querySelector('[data-field="frictionMode"]').value;
-      segment.frictionLossPerVp = num(segmentEl.querySelector('[data-field="frictionLossPerVp"]').value);
-      segment.frictionFactor = num(segmentEl.querySelector('[data-field="frictionFactor"]').value, 0.02);
-      segment.elbowCount = num(segmentEl.querySelector('[data-field="elbowCount"]').value);
-      segment.elbowK = num(segmentEl.querySelector('[data-field="elbowK"]').value);
-      segment.hasBranchEntry = segmentEl.querySelector('[data-field="hasBranchEntry"]').checked;
-      segment.branchEntryK = num(segmentEl.querySelector('[data-field="branchEntryK"]').value);
-      segment.otherLossInWg = num(segmentEl.querySelector('[data-field="otherLossInWg"]').value);
+
+      segment.description = getValue(segmentEl, 'description');
+      segment.shape = getValue(segmentEl, 'shape', 'round');
+      segment.diameterIn = num(getValue(segmentEl, 'diameterIn'), 0);
+      segment.widthIn = num(getValue(segmentEl, 'widthIn'), 0);
+      segment.heightIn = num(getValue(segmentEl, 'heightIn'), 0);
+      segment.cfm = num(getValue(segmentEl, 'cfm'), 0);
+      segment.lengthFt = num(getValue(segmentEl, 'lengthFt'), 0);
+      segment.frictionMode = getValue(segmentEl, 'frictionMode', 'lossPerVp');
+      segment.frictionLossPerVp = num(getValue(segmentEl, 'frictionLossPerVp'), 0);
+      segment.frictionFactor = num(getValue(segmentEl, 'frictionFactor'), 0.02);
+      segment.elbowCount = num(getValue(segmentEl, 'elbowCount'), 0);
+      segment.elbowK = num(getValue(segmentEl, 'elbowK'), 0);
+      segment.hasBranchEntry = getChecked(segmentEl, 'hasBranchEntry', false);
+      segment.branchEntryK = num(getValue(segmentEl, 'branchEntryK'), 0);
+      segment.otherLossInWg = num(getValue(segmentEl, 'otherLossInWg'), 0);
 
       const fittingEls = Array.from(segmentEl.querySelectorAll('[data-fitting-index]'));
       fittingEls.forEach((fitEl) => {
@@ -122,13 +134,12 @@ function updateStateFromDom() {
         if (!fitting) {
           return;
         }
-        fitting.name = fitEl.querySelector('[data-field="fit-name"]').value;
-        fitting.k = num(fitEl.querySelector('[data-field="fit-k"]').value);
+        fitting.name = getValue(fitEl, 'fit-name');
+        fitting.k = num(getValue(fitEl, 'fit-k'), 0);
       });
     });
   });
 }
-
 function addBranch() {
   const n = state.branches.length + 1;
   state.branches.push({
