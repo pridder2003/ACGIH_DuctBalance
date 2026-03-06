@@ -1,84 +1,136 @@
-# Industrial Exhaust Duct Sizing & Balance-by-Design (ACGIH-style)
+# Industrial Ventilation Designer (Diagram-First, ACGIH-style)
 
-This project is a **client-side, static web app** for preliminary industrial exhaust duct design using an ACGIH-style velocity pressure workflow.
+This project is a **client-side engineering web app** that upgrades the prior worksheet-first experience into a **diagram-first industrial ventilation design workflow**.
 
-You can open `index.html` directly in a browser and use it immediately.
+You place hoods, ducts, elbows, branch entries, filters, blast gates, and fan components directly on an isometric canvas. The diagram drives the calculations and automatically generates the engineering worksheet/chart.
 
-## What this V1 does
+## Workflow (Diagram First)
 
-- Lets you build a system from **Branches** with one or more **Segments**.
-- Supports per-segment duct geometry:
-  - Round diameter
-  - Rectangular width × height with calculated equivalent diameter
-- Models hood/entry losses with user-entered coefficients:
-  - `h_s = F_s × VP_s`
-  - `h_d = F_d × VP_d`
-  - `SP_hood = (h_s + h_d) + VP_accel`
-- Models duct segment losses in worksheet style:
-  - `Duct Loss per VP = friction loss per VP + ΣK`
-  - `Duct Loss = (Duct Loss per VP) × VP`
-- Supports elbows, branch-entry loss, and custom fittings as `K × VP` terms.
-- Computes branch cumulative SP, governing leg, fan SP target basis, and corrected flow output:
-  - `Q_corrected = Q_design × sqrt(SP_governing / SP_duct)`
-- Performs pressure ratio check at the junction and flags when ratio `> 1.2`.
-- Produces a printable engineering calculation chart aligned to ACGIH VP-method worksheet concepts.
+1. Use the **left toolbar** to choose a component tool.
+2. Click in the **isometric canvas** to place components.
+3. Select and drag components in **Select/Move** mode.
+4. Edit selected component details in the **right property panel**.
+5. Click **Calculate / Solve** to update:
+   - governing leg
+   - pressure ratio check
+   - corrected-flow outputs
+   - fan operating point (if fan mode enabled)
+   - full engineering calculation chart
 
-## Balance-by-design concept (plain language)
+## Interface Overview
 
-At each common junction, all parallel paths should require similar static pressure.
+- **Top bar**: calculate/solve, settings, advanced lock, print/export, fan summary.
+- **Left toolbar**: placement tools (hood, straight duct, elbow, junction, blast gate, fan, filter).
+- **Center workspace**: interactive isometric canvas with snap, drag, pan (Shift+drag), and zoom.
+- **Right panel**: component-specific property editor with defaults/override status.
+- **Bottom panel**: printable engineering calculation chart generated from the model.
 
-- The path needing the **highest pressure** is the **governing leg**.
-- Other paths are compared against it.
-- If one path is much lower than another (`SP_high / SP_low > 1.2`), redesign should be considered.
+## Standards Defaults and Override Locking
 
-In this app, the governing leg SP is used as the fan static pressure target basis.
+The app uses a standards/defaults layer (`Calc.Standards`) for engineering defaults.
 
-## Coefficients: what are `F` and `K`?
+- Normal mode: defaults are visible and used as locked standards values.
+- Advanced mode: unlocks manual override fields for selected coefficients.
+- Value status is shown as:
+  - `standards default`
+  - `calculated`
+  - `manual override`
 
-- `F` coefficients are used for hood/entry loss terms.
-- `K` coefficients are used for duct fitting losses (elbows, branch entries, special fittings).
+## Engineering Models Implemented
 
-These coefficients are highly geometry-specific. V1 asks you to enter them so the math stays transparent and traceable.
+## 1) Straight Duct Loss (ACGIH-style)
 
-## Important limitations and disclaimer
+Implemented with:
 
-- This tool is for **preliminary engineering support**.
-- It is not a replacement for final engineered design, code compliance review, or manufacturer/fan selection checks.
-- Any “typical values” shown in the UI are convenience hints only, not exhaustive tables.
-- ACGIH table content is not reproduced here; users must provide project-appropriate coefficients from approved references.
+- `F'_d = a * V^b / Q^c` (per foot)
+- `F_d = F'_d * L`
+- `h_d = F_d * VP_d`
+
+Material defaults:
+
+- Aluminum / black iron / stainless steel
+- Other sheet metal / plastic duct (default)
+- Flexible duct, fabric wires covered
+
+The property panel shows intermediate values: `V`, `VP_d`, `F'_d`, `F_d`, `h_d`.
+
+## 2) Elbow Loss
+
+Implemented with:
+
+- `h_el = equivalent90Count * F_el * VP_d`
+- `equivalent90Count = totalAngle / 90`
+
+Supports round and rectangular defaults with nearest-match lookup and matched table point reporting.
+
+## 3) Branch Entry Loss
+
+Implemented with:
+
+- `h_en = F_en * VP_d`
+
+Uses nearest-match lookup by branch angle and applies branch entry as a single zero-length branch loss (no regain).
+
+## 4) Hood Model
+
+Implemented with:
+
+- `h_h = F_h * VP_d`
+- `SP_h = -(1 + F_h) * VP_d` (with `F_a = 1`)
+
+Outputs include hood flow, face velocity, duct VP, hood loss, and hood static pressure.
+
+## 5) Fan Curve / Operating Point Groundwork
+
+Fan component supports manual curve points `(Q, SP)`.
+
+When fan solver mode is enabled:
+
+- fan SP available is interpolated from curve points
+- system resistance model is estimated from governing branch
+- operating point is solved where fan SP ≈ required SP
+- operating-point flow is used to scale corrected-flow estimates
+
+## Balance-by-Design Outputs
+
+The app preserves and upgrades core balance-by-design concepts:
+
+- cumulative branch static pressure
+- governing leg identification
+- pressure ratio check (`SP_high / SP_low`, redesign flag if `> 1.2`)
+- corrected-flow support:
+  - `Q_corrected = Q_design * sqrt(SP_governing / SP_duct)`
+
+## Engineering Calculation Chart
+
+The chart is generated from the diagram model and is printable.
+
+Rows include components such as hoods, straight ducts, elbows, branch entries/junctions, filters, blast gates, and fan lines. It shows intermediate values, losses, cumulative SP, and status/source visibility.
 
 ## Files
 
-- `index.html` — UI (inputs, results, worksheet chart)
-- `styles.css` — layout, print styling
-- `app.js` — UI state/actions and rendering
-- `calc.js` — **pure calculation functions only**
+- `index.html` — application shell and panels
+- `styles.css` — professional layout and print styling
+- `app.js` — diagram editor UI, state, interactions, rendering
+- `calc.js` — standards/defaults + engineering calculation modules
 
-## Use the app
+## Run
 
-1. Open `index.html` in a browser.
-2. Set density factor.
-3. Add/edit branches.
-4. Add/edit segments inside each branch.
-5. Add/edit fittings (K terms) for each segment.
-6. Enter hood coefficients (`F_s`, `F_d`) and VP inputs.
-7. Click **Calculate**.
-8. Review:
-   - Governing leg
-   - Fan SP target
-   - Ratio check and redesign flag
-   - Full engineering calculation chart
-
-## Validation commands
+Open `index.html` directly, or serve statically:
 
 ```bash
-npm run parse
-npm run lint
-npm run check:load
+python3 -m http.server 8080
 ```
 
-Run all checks:
+## Validation
 
 ```bash
 npm run check
 ```
+
+## Limitations / Disclaimer
+
+- Engineering-support tool for preliminary design and iteration.
+- Defaults should be validated against project-specific standards and references.
+- Fan/system solver is practical V1 groundwork and should be verified against detailed final design and manufacturer curves.
+- Final design responsibility remains with qualified engineering review.
