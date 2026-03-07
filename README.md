@@ -21,7 +21,7 @@ You place hoods, ducts, elbows, branch entries, filters, blast gates, and fan co
 
 - **Top bar**: calculate/solve, settings, advanced lock, print/export, fan summary.
 - **Left toolbar**: placement tools (hood, straight duct, elbow, junction, blast gate, fan, filter).
-- **Center workspace**: interactive isometric canvas with snap, drag, pan (Shift+drag), and zoom.
+- **Center workspace**: interactive isometric canvas with CAD-style constrained duct drawing (horizontal/vertical/±60°), drag, pan (Shift+drag), and zoom.
 - **Right panel**: component-specific property editor with defaults/override status.
 - **Bottom panel**: printable engineering calculation chart generated from the model.
 
@@ -100,6 +100,24 @@ The app preserves and upgrades core balance-by-design concepts:
 - pressure ratio check (`SP_high / SP_low`, redesign flag if `> 1.2`)
 - corrected-flow support:
   - `Q_corrected = Q_design * sqrt(SP_governing / SP_duct)`
+
+
+## CAD-style drawing refinements
+
+- Ducts are represented directly by **drawn line segments** (edges), not floating duct icons.
+- Elbows are node dots; direction changes are defined by adjoining duct lines.
+- Junctions are node dots with a compact sideways-Y marker.
+- Hoods render as trapezoids with horizontal parallel sides.
+- Duct drawing snaps to constrained directions:
+  - horizontal
+  - vertical
+  - +60°
+  - -60°
+- Property panel emphasizes engineering fields over raw coordinates:
+  - duct length
+  - start elevation
+  - end elevation
+- Added browser-side **DXF export** for duct centerlines, hood outlines, node symbols, and labels.
 
 ## Engineering Calculation Chart
 

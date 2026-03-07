@@ -6,89 +6,34 @@ const appState = {
   },
   ui: {
     tool: 'select',
-    selectedId: null,
+    selected: null,
     panX: 0,
     panY: 0,
     zoom: 1,
     isPanning: false,
-    dragId: null,
-    dragOffset: { x: 0, y: 0 }
+    dragRef: null,
+    dragOffset: { x: 0, y: 0 },
+    drawStartNodeId: null,
+    previewPoint: null
   },
   model: {
-    components: [
-      {
-        id: 'H1', type: 'hood', label: 'Hood 1', branchId: 'B1', order: 1,
-        position: { x: 120, y: 120, z: 0 },
-        rotation: 30,
-        props: { shape: 'round', diameterIn: 12, widthIn: 18, heightIn: 10, cfm: 1800, hoodType: 'plainOpening', openingAreaFt2: 4 },
-        overrides: { enableFh: false, fh: null }
-      },
-      {
-        id: 'D1', type: 'straightDuct', label: 'Duct B1-1', branchId: 'B1', order: 2,
-        position: { x: 220, y: 170, z: 0 },
-        rotation: 30,
-        props: { shape: 'round', diameterIn: 12, widthIn: 18, heightIn: 10, cfm: 1800, lengthFt: 45, material: 'otherSheetMetalPlastic' },
-        overrides: { enableABC: false, a: null, b: null, c: null }
-      },
-      {
-        id: 'E1', type: 'elbow', label: 'Elbow B1', branchId: 'B1', order: 3,
-        position: { x: 350, y: 230, z: 0 },
-        rotation: 60,
-        props: { shape: 'round', diameterIn: 12, widthIn: 18, heightIn: 10, cfm: 1800, geometry: 'round', elbowType: 'stamped', angleDeg: 90, rd: 1.5, wd: 1 },
-        overrides: { enableFel: false, fel: null }
-      },
-      {
-        id: 'J1', type: 'junction', label: 'Branch Entry B1', branchId: 'B1', order: 4,
-        position: { x: 470, y: 300, z: 0 },
-        rotation: 0,
-        props: { shape: 'round', diameterIn: 12, widthIn: 18, heightIn: 10, cfm: 1800, branchAngleDeg: 45 },
-        overrides: { enableFen: false, fen: null }
-      },
-      {
-        id: 'H2', type: 'hood', label: 'Hood 2', branchId: 'B2', order: 1,
-        position: { x: 140, y: 300, z: 20 },
-        rotation: 30,
-        props: { shape: 'rectangular', diameterIn: 10, widthIn: 20, heightIn: 12, cfm: 1400, hoodType: 'flanged', openingAreaFt2: 3.5 },
-        overrides: { enableFh: false, fh: null }
-      },
-      {
-        id: 'D2', type: 'straightDuct', label: 'Duct B2-1', branchId: 'B2', order: 2,
-        position: { x: 250, y: 340, z: 20 },
-        rotation: 30,
-        props: { shape: 'rectangular', diameterIn: 10, widthIn: 20, heightIn: 12, cfm: 1400, lengthFt: 40, material: 'otherSheetMetalPlastic' },
-        overrides: { enableABC: false, a: null, b: null, c: null }
-      },
-      {
-        id: 'BG1', type: 'blastGate', label: 'Blast Gate B2', branchId: 'B2', order: 3,
-        position: { x: 360, y: 390, z: 20 },
-        rotation: 0,
-        props: { shape: 'rectangular', diameterIn: 10, widthIn: 20, heightIn: 12, cfm: 1400 },
-        overrides: { enableK: false, k: null }
-      },
-      {
-        id: 'J2', type: 'junction', label: 'Branch Entry B2', branchId: 'B2', order: 4,
-        position: { x: 470, y: 300, z: 0 },
-        rotation: 0,
-        props: { shape: 'rectangular', diameterIn: 10, widthIn: 20, heightIn: 12, cfm: 1400, branchAngleDeg: 35 },
-        overrides: { enableFen: false, fen: null }
-      },
-      {
-        id: 'F1', type: 'filter', label: 'Collector Filter', branchId: 'MAIN', order: 1,
-        position: { x: 590, y: 340, z: 0 },
-        rotation: 0,
-        props: { shape: 'round', diameterIn: 16, widthIn: 20, heightIn: 12, cfm: 3200 },
-        overrides: { dropInWg: null }
-      },
-      {
-        id: 'FN1', type: 'fan', label: 'Exhaust Fan', branchId: 'MAIN', order: 2,
-        position: { x: 750, y: 380, z: 0 },
-        rotation: 0,
-        props: {
-          shape: 'round', diameterIn: 16, widthIn: 20, heightIn: 12, cfm: 3200,
-          curvePoints: [{ q: 2500, sp: 7.2 }, { q: 3200, sp: 6.1 }, { q: 4000, sp: 4.8 }]
-        },
-        overrides: {}
-      }
+    nodes: [
+      { id: 'N-H1', type: 'hood', label: 'Hood 1', branchId: 'B1', position: { x: 100, y: 120, z: 0 }, props: { hoodType: 'plainOpening', openingAreaFt2: 4, shape: 'round', diameterIn: 12, widthIn: 18, heightIn: 10, cfm: 1800 }, overrides: { enableFh: false, fh: null } },
+      { id: 'N-E1', type: 'elbow', label: 'Elbow 1', branchId: 'B1', position: { x: 260, y: 200, z: 0 }, props: { geometry: 'round', elbowType: 'stamped', angleDeg: 90, rd: 1.5, wd: 1, shape: 'round', diameterIn: 12, widthIn: 18, heightIn: 10, cfm: 1800 }, overrides: { enableFel: false, fel: null } },
+      { id: 'N-J1', type: 'junction', label: 'Junction 1', branchId: 'B1', position: { x: 460, y: 290, z: 0 }, props: { branchAngleDeg: 45, shape: 'round', diameterIn: 12, widthIn: 18, heightIn: 10, cfm: 1800 }, overrides: { enableFen: false, fen: null } },
+      { id: 'N-H2', type: 'hood', label: 'Hood 2', branchId: 'B2', position: { x: 130, y: 290, z: 20 }, props: { hoodType: 'flanged', openingAreaFt2: 3.5, shape: 'rectangular', diameterIn: 10, widthIn: 20, heightIn: 12, cfm: 1400 }, overrides: { enableFh: false, fh: null } },
+      { id: 'N-BG1', type: 'blastGate', label: 'Blast Gate', branchId: 'B2', position: { x: 330, y: 365, z: 20 }, props: { shape: 'rectangular', diameterIn: 10, widthIn: 20, heightIn: 12, cfm: 1400 }, overrides: { enableK: false, k: null } },
+      { id: 'N-J2', type: 'junction', label: 'Junction 2', branchId: 'B2', position: { x: 460, y: 290, z: 0 }, props: { branchAngleDeg: 35, shape: 'rectangular', diameterIn: 10, widthIn: 20, heightIn: 12, cfm: 1400 }, overrides: { enableFen: false, fen: null } },
+      { id: 'N-F1', type: 'filter', label: 'Filter', branchId: 'MAIN', position: { x: 580, y: 340, z: 0 }, props: { shape: 'round', diameterIn: 16, widthIn: 20, heightIn: 12, cfm: 3200 }, overrides: { dropInWg: null } },
+      { id: 'N-FN1', type: 'fan', label: 'Fan', branchId: 'MAIN', position: { x: 740, y: 370, z: 0 }, props: { shape: 'round', diameterIn: 16, widthIn: 20, heightIn: 12, cfm: 3200, curvePoints: [{ q: 2500, sp: 7.2 }, { q: 3200, sp: 6.1 }, { q: 4000, sp: 4.8 }] }, overrides: {} }
+    ],
+    edges: [
+      { id: 'D-B1-1', type: 'straightDuct', label: 'B1-Run1', branchId: 'B1', order: 2, from: 'N-H1', to: 'N-E1', props: { shape: 'round', diameterIn: 12, widthIn: 18, heightIn: 10, cfm: 1800, material: 'otherSheetMetalPlastic', lengthFt: 45, startElevation: 0, endElevation: 0 }, overrides: { enableABC: false, a: null, b: null, c: null } },
+      { id: 'D-B1-2', type: 'straightDuct', label: 'B1-Run2', branchId: 'B1', order: 3, from: 'N-E1', to: 'N-J1', props: { shape: 'round', diameterIn: 12, widthIn: 18, heightIn: 10, cfm: 1800, material: 'otherSheetMetalPlastic', lengthFt: 52, startElevation: 0, endElevation: 0 }, overrides: { enableABC: false, a: null, b: null, c: null } },
+      { id: 'D-B2-1', type: 'straightDuct', label: 'B2-Run1', branchId: 'B2', order: 2, from: 'N-H2', to: 'N-BG1', props: { shape: 'rectangular', diameterIn: 10, widthIn: 20, heightIn: 12, cfm: 1400, material: 'otherSheetMetalPlastic', lengthFt: 42, startElevation: 20, endElevation: 20 }, overrides: { enableABC: false, a: null, b: null, c: null } },
+      { id: 'D-B2-2', type: 'straightDuct', label: 'B2-Run2', branchId: 'B2', order: 3, from: 'N-BG1', to: 'N-J2', props: { shape: 'rectangular', diameterIn: 10, widthIn: 20, heightIn: 12, cfm: 1400, material: 'otherSheetMetalPlastic', lengthFt: 38, startElevation: 20, endElevation: 0 }, overrides: { enableABC: false, a: null, b: null, c: null } },
+      { id: 'D-M1', type: 'straightDuct', label: 'Main-1', branchId: 'MAIN', order: 1, from: 'N-J1', to: 'N-F1', props: { shape: 'round', diameterIn: 16, widthIn: 20, heightIn: 12, cfm: 3200, material: 'otherSheetMetalPlastic', lengthFt: 30, startElevation: 0, endElevation: 0 }, overrides: { enableABC: false, a: null, b: null, c: null } },
+      { id: 'D-M2', type: 'straightDuct', label: 'Main-2', branchId: 'MAIN', order: 2, from: 'N-F1', to: 'N-FN1', props: { shape: 'round', diameterIn: 16, widthIn: 20, heightIn: 12, cfm: 3200, material: 'otherSheetMetalPlastic', lengthFt: 28, startElevation: 0, endElevation: 0 }, overrides: { enableABC: false, a: null, b: null, c: null } }
     ]
   },
   results: null
@@ -97,29 +42,90 @@ const appState = {
 const svg = document.getElementById('isoCanvas');
 const viewportGroup = document.getElementById('viewportGroup');
 
-function idFor(type) {
-  const count = appState.model.components.filter((c) => c.type === type).length + 1;
-  return `${type.slice(0, 2).toUpperCase()}${count}`;
+function idFor(prefix, list) {
+  const index = list.length + 1;
+  return `${prefix}${index}`;
+}
+
+function n(value, fallback = 0) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
 }
 
 function isoToScreen(position) {
-  const x = position.x - position.y;
-  const y = (position.x + position.y) * 0.5 - position.z;
-  return { x, y };
+  return {
+    x: position.x - position.y,
+    y: (position.x + position.y) * 0.5 - position.z
+  };
 }
 
 function screenToIso(x, y, z = 0) {
-  const isoX = y + x / 2;
-  const isoY = y - x / 2;
-  return { x: isoX, y: isoY, z };
+  return { x: y + x / 2, y: y - x / 2, z };
 }
 
-function snapIso(point, step = 20) {
-  return {
-    x: Math.round(point.x / step) * step,
-    y: Math.round(point.y / step) * step,
-    z: Math.round(point.z / 10) * 10
-  };
+function dist2(a, b) {
+  const dx = a.x - b.x;
+  const dy = a.y - b.y;
+  return dx * dx + dy * dy;
+}
+
+function format(value, digits = 3) {
+  return Number.isFinite(value) ? value.toFixed(digits) : '—';
+}
+
+function screenPtFromEvent(event) {
+  const rect = svg.getBoundingClientRect();
+  const sx = ((event.clientX - rect.left) / rect.width) * 1200;
+  const sy = ((event.clientY - rect.top) / rect.height) * 760;
+  const x = (sx - 600 - appState.ui.panX) / appState.ui.zoom;
+  const y = (sy - 190 - appState.ui.panY) / appState.ui.zoom;
+  return { x, y };
+}
+
+function nearestNode(screenPt, maxRadius = 18) {
+  let best = null;
+  let bestD2 = Infinity;
+  appState.model.nodes.forEach((node) => {
+    const p = isoToScreen(node.position);
+    const d = dist2(screenPt, p);
+    if (d < bestD2) {
+      bestD2 = d;
+      best = node;
+    }
+  });
+  return bestD2 <= maxRadius * maxRadius ? best : null;
+}
+
+function allowedDirections() {
+  const cos60 = Math.cos(Math.PI / 3);
+  const sin60 = Math.sin(Math.PI / 3);
+  return [
+    { x: 1, y: 0 },
+    { x: -1, y: 0 },
+    { x: 0, y: 1 },
+    { x: 0, y: -1 },
+    { x: cos60, y: sin60 },
+    { x: -cos60, y: -sin60 },
+    { x: cos60, y: -sin60 },
+    { x: -cos60, y: sin60 }
+  ];
+}
+
+function constrainToCadDirections(startScreen, currentScreen) {
+  const v = { x: currentScreen.x - startScreen.x, y: currentScreen.y - startScreen.y };
+  const dirs = allowedDirections();
+  let best = dirs[0];
+  let bestProj = -Infinity;
+  dirs.forEach((dir) => {
+    const proj = v.x * dir.x + v.y * dir.y;
+    if (proj > bestProj) {
+      bestProj = proj;
+      best = dir;
+    }
+  });
+
+  const length = Math.max(0, bestProj);
+  return { x: startScreen.x + best.x * length, y: startScreen.y + best.y * length };
 }
 
 function updateViewportTransform() {
@@ -127,331 +133,639 @@ function updateViewportTransform() {
 }
 
 function drawGrid() {
-  const gridLayer = document.getElementById('gridLayer');
-  gridLayer.innerHTML = '';
-  const path = [];
-  for (let i = -800; i <= 800; i += 40) {
-    path.push(`M ${i} -600 L ${i + 1200} 0`);
-    path.push(`M ${i} 600 L ${i - 1200} 0`);
+  const layer = document.getElementById('gridLayer');
+  layer.innerHTML = '';
+  const pathData = [];
+  for (let i = -900; i <= 900; i += 50) {
+    pathData.push(`M ${i} -680 L ${i + 1300} -30`);
+    pathData.push(`M ${i} 680 L ${i - 1300} 30`);
   }
-  for (let i = -600; i <= 600; i += 40) {
-    path.push(`M -1200 ${i} L 1200 ${i}`);
+  for (let j = -680; j <= 680; j += 50) {
+    pathData.push(`M -1300 ${j} L 1300 ${j}`);
   }
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', pathData.join(' '));
+  path.setAttribute('stroke', '#edf2f7');
+  path.setAttribute('stroke-width', '0.9');
+  path.setAttribute('fill', 'none');
+  layer.appendChild(path);
+}
+
+function nodeSymbol(node, connectedVector) {
+  if (node.type === 'hood') {
+    return '<polygon points="-18,9 18,9 10,-9 -10,-9" class="hood-shape" />';
+  }
+  if (node.type === 'elbow') {
+    return '<circle r="4.5" class="node-dot" />';
+  }
+  if (node.type === 'junction') {
+    return '<circle r="4" class="node-dot" /><path d="M 0 0 L 12 0 M 0 0 L -8 -7 M 0 0 L -8 7" class="junction-y" />';
+  }
+  if (node.type === 'fan') {
+    return '<circle r="9" class="fan-ring" /><path d="M -2 -1 L 7 1 L -1 6 z" class="fan-blade" />';
+  }
+  if (node.type === 'filter') {
+    const rot = connectedVector ? Math.atan2(connectedVector.y, connectedVector.x) * 180 / Math.PI : 0;
+    return `<g transform="rotate(${rot})"><rect x="-8" y="-6" width="16" height="12" class="inline-symbol"/><path d="M -6 -6 L -3 6 M 0 -6 L 3 6 M 6 -6 L 8 6" class="filter-hatch"/></g>`;
+  }
+  if (node.type === 'blastGate') {
+    const rot = connectedVector ? Math.atan2(connectedVector.y, connectedVector.x) * 180 / Math.PI : 0;
+    return `<g transform="rotate(${rot})"><rect x="-7" y="-4" width="14" height="8" class="inline-symbol"/><path d="M -6 -5 L 6 5" class="gate-line"/></g>`;
+  }
+  return '<circle r="3.5" class="node-dot secondary" />';
+}
+
+function connectedVectorForNode(nodeId) {
+  const edge = appState.model.edges.find((item) => item.from === nodeId || item.to === nodeId);
+  if (!edge) {
+    return { x: 1, y: 0 };
+  }
+  const otherId = edge.from === nodeId ? edge.to : edge.from;
+  const node = appState.model.nodes.find((item) => item.id === nodeId);
+  const other = appState.model.nodes.find((item) => item.id === otherId);
+  if (!node || !other) {
+    return { x: 1, y: 0 };
+  }
+  const a = isoToScreen(node.position);
+  const b = isoToScreen(other.position);
+  return { x: b.x - a.x, y: b.y - a.y };
+}
+
+function drawEdges() {
+  const edgeLayer = document.getElementById('edgeLayer');
+  const labelLayer = document.getElementById('labelLayer');
+  edgeLayer.innerHTML = '';
+  labelLayer.innerHTML = '';
+
+  appState.model.edges.forEach((edge) => {
+    const fromNode = appState.model.nodes.find((node) => node.id === edge.from);
+    const toNode = appState.model.nodes.find((node) => node.id === edge.to);
+    if (!fromNode || !toNode) {
+      return;
+    }
+    const a = isoToScreen(fromNode.position);
+    const b = isoToScreen(toNode.position);
+
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    line.setAttribute('d', `M ${a.x} ${a.y} L ${b.x} ${b.y}`);
+    line.setAttribute('class', `duct-line ${appState.ui.selected?.kind === 'edge' && appState.ui.selected.id === edge.id ? 'selected' : ''}`);
+    line.dataset.edgeId = edge.id;
+    edgeLayer.appendChild(line);
+
+    const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+    const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    txt.setAttribute('x', `${mid.x + 5}`);
+    txt.setAttribute('y', `${mid.y - 6}`);
+    txt.setAttribute('class', 'edge-label');
+    txt.textContent = `${edge.label} (${format(edge.props.cfm, 0)} cfm)`;
+    labelLayer.appendChild(txt);
+  });
+}
+
+function drawNodes() {
+  const nodeLayer = document.getElementById('nodeLayer');
+  const labelLayer = document.getElementById('labelLayer');
+  nodeLayer.innerHTML = '';
+
+  appState.model.nodes.forEach((node) => {
+    const p = isoToScreen(node.position);
+    const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    group.setAttribute('transform', `translate(${p.x} ${p.y})`);
+    group.setAttribute('class', `node ${appState.ui.selected?.kind === 'node' && appState.ui.selected.id === node.id ? 'selected' : ''}`);
+    group.dataset.nodeId = node.id;
+    group.innerHTML = nodeSymbol(node, connectedVectorForNode(node.id));
+    nodeLayer.appendChild(group);
+
+    if (node.type !== 'elbow' && node.type !== 'junction') {
+      const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      txt.setAttribute('x', `${p.x + 8}`);
+      txt.setAttribute('y', `${p.y + 16}`);
+      txt.setAttribute('class', 'node-label');
+      txt.textContent = node.label;
+      labelLayer.appendChild(txt);
+    }
+  });
+}
+
+function drawPreview() {
+  const layer = document.getElementById('previewLayer');
+  layer.innerHTML = '';
+  if (appState.ui.tool !== 'straightDuct' || !appState.ui.drawStartNodeId || !appState.ui.previewPoint) {
+    return;
+  }
+  const startNode = appState.model.nodes.find((node) => node.id === appState.ui.drawStartNodeId);
+  if (!startNode) {
+    return;
+  }
+  const startScreen = isoToScreen(startNode.position);
   const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-  p.setAttribute('d', path.join(' '));
-  p.setAttribute('stroke', '#e6edf5');
-  p.setAttribute('stroke-width', '1');
-  p.setAttribute('fill', 'none');
-  gridLayer.appendChild(p);
-}
-
-function componentColor(type) {
-  const palette = {
-    hood: '#1a7f5a', straightDuct: '#2d5c89', elbow: '#366694', junction: '#7a5f2e', blastGate: '#7f3d3d', fan: '#673ab7', filter: '#8a6f1f'
-  };
-  return palette[type] || '#2d5c89';
-}
-
-function componentGlyph(type) {
-  if (type === 'hood') {
-    return 'M -16 10 L 16 10 L 10 -10 L -10 -10 z';
-  }
-  if (type === 'straightDuct') {
-    return 'M -24 -8 L 24 -8 L 24 8 L -24 8 z';
-  }
-  if (type === 'elbow') {
-    return 'M -16 10 A 18 18 0 0 1 10 -16 L 16 -10 A 26 26 0 0 0 -10 16 z';
-  }
-  if (type === 'junction') {
-    return 'M 0 -16 L 14 8 L -14 8 z';
-  }
-  if (type === 'blastGate') {
-    return 'M -18 -10 L 18 -10 L 18 10 L -18 10 z M -10 -14 L 10 14';
-  }
-  if (type === 'fan') {
-    return 'M 0 -16 A 16 16 0 1 1 -0.1 -16 z M -3 0 L 10 4 L -4 10 z';
-  }
-  if (type === 'filter') {
-    return 'M -18 -12 L 18 -12 L 18 12 L -18 12 z M -12 -12 L -6 12 M 0 -12 L 6 12 M 12 -12 L 18 12';
-  }
-  return 'M -10 -10 L 10 -10 L 10 10 L -10 10 z';
-}
-
-function drawConnections() {
-  const layer = document.getElementById('connectionLayer');
-  layer.innerHTML = '';
-  const byBranch = {};
-  appState.model.components.forEach((component) => {
-    if (!byBranch[component.branchId]) {
-      byBranch[component.branchId] = [];
-    }
-    byBranch[component.branchId].push(component);
-  });
-
-  Object.values(byBranch).forEach((branch) => {
-    branch.sort((a, b) => a.order - b.order);
-    for (let i = 0; i < branch.length - 1; i += 1) {
-      const a = isoToScreen(branch[i].position);
-      const b = isoToScreen(branch[i + 1].position);
-      const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      line.setAttribute('class', 'connection');
-      line.setAttribute('d', `M ${a.x} ${a.y} L ${b.x} ${b.y}`);
-      layer.appendChild(line);
-    }
-  });
-}
-
-function drawComponents() {
-  const layer = document.getElementById('componentLayer');
-  layer.innerHTML = '';
-
-  appState.model.components.forEach((component) => {
-    const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-    g.setAttribute('class', `component ${appState.ui.selectedId === component.id ? 'selected' : ''}`);
-    g.dataset.id = component.id;
-    const pos = isoToScreen(component.position);
-    g.setAttribute('transform', `translate(${pos.x} ${pos.y}) rotate(${component.rotation || 0})`);
-
-    const glyph = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    glyph.setAttribute('class', 'glyph');
-    glyph.setAttribute('d', componentGlyph(component.type));
-    glyph.setAttribute('fill', 'white');
-    glyph.setAttribute('stroke', componentColor(component.type));
-    glyph.setAttribute('stroke-width', '2');
-
-    const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    label.setAttribute('x', '20');
-    label.setAttribute('y', '-14');
-    label.setAttribute('class', 'flow-tag');
-    label.textContent = `${component.label} (${component.branchId})`;
-
-    g.appendChild(glyph);
-    g.appendChild(label);
-    layer.appendChild(g);
-  });
+  p.setAttribute('d', `M ${startScreen.x} ${startScreen.y} L ${appState.ui.previewPoint.x} ${appState.ui.previewPoint.y}`);
+  p.setAttribute('class', 'duct-preview');
+  layer.appendChild(p);
 }
 
 function renderCanvas() {
   drawGrid();
-  drawConnections();
-  drawComponents();
+  drawEdges();
+  drawNodes();
+  drawPreview();
   updateViewportTransform();
 }
 
 function renderToolButtons() {
-  document.querySelectorAll('.tool').forEach((button) => {
-    button.classList.toggle('active', button.dataset.tool === appState.ui.tool);
+  document.querySelectorAll('.tool').forEach((button) => button.classList.toggle('active', button.dataset.tool === appState.ui.tool));
+}
+
+function edgeLengthFromGeometry(edge) {
+  const fromNode = appState.model.nodes.find((node) => node.id === edge.from);
+  const toNode = appState.model.nodes.find((node) => node.id === edge.to);
+  if (!fromNode || !toNode) {
+    return 0;
+  }
+  const dx = toNode.position.x - fromNode.position.x;
+  const dy = toNode.position.y - fromNode.position.y;
+  const dz = (edge.props.endElevation ?? toNode.position.z) - (edge.props.startElevation ?? fromNode.position.z);
+  return Math.sqrt(dx * dx + dy * dy + dz * dz) / 12;
+}
+
+function ensureEdgeEngineering(edge) {
+  const computedLen = edgeLengthFromGeometry(edge);
+  if (!edge.props.lengthFt || edge.props.lengthMode !== 'manual') {
+    edge.props.lengthFt = computedLen;
+    edge.props.lengthMode = 'geometry';
+  }
+}
+
+function calcModelFromGraph() {
+  const list = [];
+
+  const byBranchEdges = {};
+  appState.model.edges.forEach((edge) => {
+    if (!byBranchEdges[edge.branchId]) {
+      byBranchEdges[edge.branchId] = [];
+    }
+    byBranchEdges[edge.branchId].push(edge);
   });
-}
 
-function getSelectedComponent() {
-  return appState.model.components.find((component) => component.id === appState.ui.selectedId) || null;
-}
+  Object.keys(byBranchEdges).forEach((branchId) => {
+    const edges = byBranchEdges[branchId].sort((a, b) => n(a.order) - n(b.order));
+    const emittedNodes = new Set();
 
-function badge(status) {
-  const cls = status === 'manual override' ? 'override' : status === 'calculated' ? 'calc' : 'default';
-  return `<span class="badge ${cls}">${status}</span>`;
-}
+    edges.forEach((edge, idx) => {
+      ensureEdgeEngineering(edge);
+      const fromNode = appState.model.nodes.find((node) => node.id === edge.from);
+      const toNode = appState.model.nodes.find((node) => node.id === edge.to);
 
-function renderPropertyPanel() {
-  const selected = getSelectedComponent();
-  const selectionMeta = document.getElementById('selectionMeta');
-  const form = document.getElementById('propertyForm');
+      if (fromNode && fromNode.type !== 'node' && !emittedNodes.has(fromNode.id)) {
+        list.push({
+          id: fromNode.id,
+          type: fromNode.type,
+          label: fromNode.label,
+          branchId,
+          order: idx * 3 + 1,
+          props: { ...fromNode.props },
+          overrides: { ...(fromNode.overrides || {}) }
+        });
+        emittedNodes.add(fromNode.id);
+      }
 
-  if (!selected) {
-    selectionMeta.textContent = 'No component selected.';
-    form.innerHTML = '<p>Select a component on the isometric canvas to edit properties.</p>';
-    return;
-  }
+      list.push({
+        id: edge.id,
+        type: 'straightDuct',
+        label: edge.label,
+        branchId,
+        order: idx * 3 + 2,
+        props: { ...edge.props },
+        overrides: { ...(edge.overrides || {}) }
+      });
 
-  selectionMeta.innerHTML = `<strong>${selected.label}</strong><br/>Type: ${window.Calc.componentTypeLabel(selected.type)} • Branch: ${selected.branchId} • ID: ${selected.id}`;
-  const lock = !appState.settings.advancedUnlocked;
-  const result = appState.results?.worksheetRows.find((row) => row.id === selected.id)?.details;
+      if (toNode && toNode.type !== 'node' && !emittedNodes.has(toNode.id)) {
+        list.push({
+          id: toNode.id,
+          type: toNode.type,
+          label: toNode.label,
+          branchId,
+          order: idx * 3 + 3,
+          props: { ...toNode.props },
+          overrides: { ...(toNode.overrides || {}) }
+        });
+        emittedNodes.add(toNode.id);
+      }
+    });
+  });
 
-  let specific = '';
-  if (selected.type === 'straightDuct') {
-    const mats = window.Calc.Standards.straightDuct.materials;
-    specific = `
-      <label>Material
-        <select data-prop="material">
-          ${Object.keys(mats).map((k) => `<option value="${k}" ${selected.props.material === k ? 'selected' : ''}>${mats[k].label}</option>`).join('')}
-        </select>
-      </label>
-      <label>Length (ft)<input type="number" data-prop="lengthFt" value="${selected.props.lengthFt || 0}" /></label>
-      <label>Enable a/b/c Override
-        <input type="checkbox" data-override-flag="enableABC" ${selected.overrides.enableABC ? 'checked' : ''} ${lock ? 'disabled' : ''}/>
-      </label>
-      <label>a<input type="number" step="0.0001" data-override="a" value="${selected.overrides.a ?? ''}" ${lock ? 'disabled' : ''}/></label>
-      <label>b<input type="number" step="0.001" data-override="b" value="${selected.overrides.b ?? ''}" ${lock ? 'disabled' : ''}/></label>
-      <label>c<input type="number" step="0.001" data-override="c" value="${selected.overrides.c ?? ''}" ${lock ? 'disabled' : ''}/></label>
-      <div class="selection-meta">${badge(result?.status || 'standards default')} ${result ? `V=${result.velocity.toFixed(1)}, VP=${result.vp.toFixed(4)}, F'=${result.fdPrime.toFixed(6)}, F=${result.fd.toFixed(4)}, h_d=${result.loss.toFixed(4)}` : ''}</div>
-    `;
-  } else if (selected.type === 'elbow') {
-    specific = `
-      <label>Geometry
-        <select data-prop="geometry">
-          <option value="round" ${selected.props.geometry === 'round' ? 'selected' : ''}>Round</option>
-          <option value="rectangular" ${selected.props.geometry === 'rectangular' ? 'selected' : ''}>Rectangular</option>
-        </select>
-      </label>
-      <label>Elbow Type
-        <select data-prop="elbowType">
-          ${['stamped','fivePiece','fourPiece','threePiece','mitered','miteredTurningVanes','flatback'].map((k)=>`<option value="${k}" ${selected.props.elbowType===k?'selected':''}>${k}</option>`).join('')}
-        </select>
-      </label>
-      <label>Angle (deg)<input type="number" data-prop="angleDeg" value="${selected.props.angleDeg || 90}" /></label>
-      <label>R/D<input type="number" step="0.01" data-prop="rd" value="${selected.props.rd || 1}" /></label>
-      <label>W/D<input type="number" step="0.01" data-prop="wd" value="${selected.props.wd || 1}" /></label>
-      <label>Enable F_el Override <input type="checkbox" data-override-flag="enableFel" ${selected.overrides.enableFel ? 'checked' : ''} ${lock ? 'disabled' : ''}/></label>
-      <label>F_el override<input type="number" step="0.01" data-override="fel" value="${selected.overrides.fel ?? ''}" ${lock ? 'disabled' : ''}/></label>
-      <div class="selection-meta">${badge(result?.status || 'standards default')} ${result ? `matched=${result.matched || '-'}, eq90=${result.equivalent90?.toFixed(3) || '-'}, h_el=${result.loss.toFixed(4)}` : ''}</div>
-    `;
-  } else if (selected.type === 'junction') {
-    specific = `
-      <label>Branch Angle (deg)<input type="number" data-prop="branchAngleDeg" value="${selected.props.branchAngleDeg || 45}" /></label>
-      <label>Enable F_en Override <input type="checkbox" data-override-flag="enableFen" ${selected.overrides.enableFen ? 'checked' : ''} ${lock ? 'disabled' : ''}/></label>
-      <label>F_en override<input type="number" step="0.01" data-override="fen" value="${selected.overrides.fen ?? ''}" ${lock ? 'disabled' : ''}/></label>
-      <div class="selection-meta">${badge(result?.status || 'standards default')} ${result ? `matched angle=${result.matchedAngle || '-'}, h_en=${result.loss.toFixed(4)}` : ''}</div>
-    `;
-  } else if (selected.type === 'hood') {
-    specific = `
-      <label>Hood Type
-        <select data-prop="hoodType">
-          ${Object.keys(window.Calc.Standards.hood.types).map((k)=>`<option value="${k}" ${selected.props.hoodType===k?'selected':''}>${k}</option>`).join('')}
-        </select>
-      </label>
-      <label>Opening Area (ft²)<input type="number" step="0.01" data-prop="openingAreaFt2" value="${selected.props.openingAreaFt2 || 0}" /></label>
-      <label>Enable F_h Override <input type="checkbox" data-override-flag="enableFh" ${selected.overrides.enableFh ? 'checked' : ''} ${lock ? 'disabled' : ''}/></label>
-      <label>F_h override<input type="number" step="0.01" data-override="fh" value="${selected.overrides.fh ?? ''}" ${lock ? 'disabled' : ''}/></label>
-      <div class="selection-meta">${badge(result?.status || 'standards default')} ${result ? `V_face=${result.faceVelocity.toFixed(1)}, VP_d=${result.vp.toFixed(4)}, F_a=${result.fa}, F_h=${result.fh.toFixed(3)}, h_h=${result.hH.toFixed(4)}, SP_h=${result.spH.toFixed(4)}` : ''}</div>
-    `;
-  } else if (selected.type === 'fan') {
-    const pts = selected.props.curvePoints.map((p) => `${p.q}:${p.sp}`).join(', ');
-    specific = `
-      <label>Fan Curve Points (q:sp comma-separated)
-        <textarea data-prop="curvePointsText" rows="3">${pts}</textarea>
-      </label>
-      <div class="selection-meta">Operating point: ${appState.results?.operatingPoint ? `${appState.results.operatingPoint.q.toFixed(1)} cfm @ ${appState.results.operatingPoint.sp.toFixed(3)} in.wg` : 'Not solved'}</div>
-    `;
-  } else if (selected.type === 'filter') {
-    specific = `
-      <label>Filter ΔSP override (in.wg)
-        <input type="number" step="0.01" data-override="dropInWg" value="${selected.overrides.dropInWg ?? ''}" ${lock ? 'disabled' : ''}/>
-      </label>
-      <div class="selection-meta">${badge(result?.status || 'standards default')} ${result ? `h_filter=${result.loss.toFixed(4)}` : ''}</div>
-    `;
-  } else if (selected.type === 'blastGate') {
-    specific = `
-      <label>Enable K Override <input type="checkbox" data-override-flag="enableK" ${selected.overrides.enableK ? 'checked' : ''} ${lock ? 'disabled' : ''}/></label>
-      <label>K override<input type="number" step="0.01" data-override="k" value="${selected.overrides.k ?? ''}" ${lock ? 'disabled' : ''}/></label>
-      <div class="selection-meta">${badge(result?.status || 'standards default')} ${result ? `h_gate=${result.loss.toFixed(4)}` : ''}</div>
-    `;
-  }
-
-  form.innerHTML = `
-    <div class="property-grid" data-selected-form="${selected.id}">
-      <label>Label<input data-prop="label" value="${selected.label}" /></label>
-      <label>Branch ID<input data-prop="branchId" value="${selected.branchId}" /></label>
-      <label>Order<input type="number" data-prop="order" value="${selected.order}" /></label>
-      <label>Flow (cfm)<input type="number" data-prop="cfm" value="${selected.props.cfm || 0}" /></label>
-      <label>Shape
-        <select data-prop="shape">
-          <option value="round" ${selected.props.shape === 'round' ? 'selected' : ''}>Round</option>
-          <option value="rectangular" ${selected.props.shape === 'rectangular' ? 'selected' : ''}>Rectangular</option>
-        </select>
-      </label>
-      <label>Diameter (in)<input type="number" data-prop="diameterIn" value="${selected.props.diameterIn || 0}" /></label>
-      <label>Width (in)<input type="number" data-prop="widthIn" value="${selected.props.widthIn || 0}" /></label>
-      <label>Height (in)<input type="number" data-prop="heightIn" value="${selected.props.heightIn || 0}" /></label>
-      <label>Iso X<input type="number" data-position="x" value="${selected.position.x}" /></label>
-      <label>Iso Y<input type="number" data-position="y" value="${selected.position.y}" /></label>
-      <label>Elevation Z<input type="number" data-position="z" value="${selected.position.z}" /></label>
-      <label>Rotation<input type="number" data-prop="rotation" value="${selected.rotation || 0}" /></label>
-      ${specific}
-    </div>
-  `;
+  return { components: list };
 }
 
 function calcAndRender() {
-  appState.results = window.Calc.computeSystem(appState.model, appState.settings);
+  const calcModel = calcModelFromGraph();
+  appState.results = window.Calc.computeSystem(calcModel, appState.settings);
   document.getElementById('chartBody').innerHTML = window.Calc.formatChartRows(appState.results);
 
-  const summary = document.getElementById('resultSummary');
-  summary.innerHTML = `
+  document.getElementById('resultSummary').innerHTML = `
     <div class="result-card"><h4>Governing Leg</h4><p>${appState.results.governingLegId}</p></div>
-    <div class="result-card"><h4>Governing SP</h4><p>${appState.results.governingSp.toFixed(3)} in.wg</p></div>
-    <div class="result-card"><h4>Pressure Ratio</h4><p>${appState.results.pressureRatio.toFixed(3)} ${appState.results.redesign ? '⚠️' : '✅'}</p></div>
-    <div class="result-card"><h4>Total Design Flow</h4><p>${appState.results.totalFlowDesign.toFixed(1)} cfm</p></div>
+    <div class="result-card"><h4>Governing SP</h4><p>${format(appState.results.governingSp)} in.wg</p></div>
+    <div class="result-card"><h4>Pressure Ratio</h4><p>${format(appState.results.pressureRatio)} ${appState.results.redesign ? '⚠️' : '✅'}</p></div>
+    <div class="result-card"><h4>Total Design Flow</h4><p>${format(appState.results.totalFlowDesign, 1)} cfm</p></div>
   `;
 
-  const fanSummary = document.getElementById('fanSummary');
   if (appState.results.operatingPoint) {
-    fanSummary.textContent = `Fan OP: ${appState.results.operatingPoint.q.toFixed(1)} cfm @ ${appState.results.operatingPoint.sp.toFixed(3)} in.wg`;
+    document.getElementById('fanSummary').textContent = `Fan OP ${format(appState.results.operatingPoint.q, 1)} cfm @ ${format(appState.results.operatingPoint.sp, 3)} in.wg`;
   } else {
-    fanSummary.textContent = `Fan summary: Governing SP ${appState.results.governingSp.toFixed(3)} in.wg`;
+    document.getElementById('fanSummary').textContent = `Fan summary: Governing SP ${format(appState.results.governingSp)} in.wg`;
   }
 
   renderPropertyPanel();
   renderCanvas();
 }
 
-function addComponentAt(tool, isoPoint) {
-  const component = {
-    id: idFor(tool),
-    type: tool,
-    label: `${window.Calc.componentTypeLabel(tool)} ${idFor(tool)}`,
+function statusBadge(status) {
+  const css = status === 'manual override' ? 'override' : status === 'calculated' ? 'calc' : 'default';
+  return `<span class="badge ${css}">${status}</span>`;
+}
+
+function selectedEntity() {
+  if (!appState.ui.selected) {
+    return null;
+  }
+  if (appState.ui.selected.kind === 'node') {
+    return appState.model.nodes.find((node) => node.id === appState.ui.selected.id) || null;
+  }
+  return appState.model.edges.find((edge) => edge.id === appState.ui.selected.id) || null;
+}
+
+function renderPropertyPanel() {
+  const meta = document.getElementById('selectionMeta');
+  const form = document.getElementById('propertyForm');
+  const selected = selectedEntity();
+
+  if (!selected) {
+    meta.textContent = 'No item selected.';
+    form.innerHTML = '<p>Select a duct line or node to edit engineering properties.</p>';
+    return;
+  }
+
+  if (appState.ui.selected.kind === 'edge') {
+    const result = appState.results?.worksheetRows.find((row) => row.id === selected.id)?.details;
+    const lock = !appState.settings.advancedUnlocked;
+    meta.innerHTML = `<strong>${selected.label}</strong><br/>Duct run • Branch ${selected.branchId}`;
+    form.innerHTML = `
+      <div class="property-grid" data-kind="edge" data-id="${selected.id}">
+        <label>Label<input data-field="label" value="${selected.label}" /></label>
+        <label>Branch ID<input data-field="branchId" value="${selected.branchId}" /></label>
+        <label>Order<input type="number" data-field="order" value="${selected.order}" /></label>
+        <label>Flow (cfm)<input type="number" data-field="cfm" value="${selected.props.cfm}" /></label>
+        <label>Shape
+          <select data-field="shape">
+            <option value="round" ${selected.props.shape === 'round' ? 'selected' : ''}>Round</option>
+            <option value="rectangular" ${selected.props.shape === 'rectangular' ? 'selected' : ''}>Rectangular</option>
+          </select>
+        </label>
+        <label>Diameter (in)<input type="number" data-field="diameterIn" value="${selected.props.diameterIn}" /></label>
+        <label>Width (in)<input type="number" data-field="widthIn" value="${selected.props.widthIn}" /></label>
+        <label>Height (in)<input type="number" data-field="heightIn" value="${selected.props.heightIn}" /></label>
+        <label>Length (ft)<input type="number" step="0.01" data-field="lengthFt" value="${format(selected.props.lengthFt, 2)}" /></label>
+        <label>Start Elevation<input type="number" step="1" data-field="startElevation" value="${selected.props.startElevation ?? 0}" /></label>
+        <label>End Elevation<input type="number" step="1" data-field="endElevation" value="${selected.props.endElevation ?? 0}" /></label>
+        <label>Material
+          <select data-field="material">
+            ${Object.entries(window.Calc.Standards.straightDuct.materials).map(([k,v])=>`<option value="${k}" ${selected.props.material===k?'selected':''}>${v.label}</option>`).join('')}
+          </select>
+        </label>
+        <label>Enable a/b/c Override<input type="checkbox" data-field="enableABC" ${selected.overrides.enableABC ? 'checked' : ''} ${lock ? 'disabled' : ''} /></label>
+        <label>a<input type="number" step="0.0001" data-field="a" value="${selected.overrides.a ?? ''}" ${lock ? 'disabled' : ''}/></label>
+        <label>b<input type="number" step="0.001" data-field="b" value="${selected.overrides.b ?? ''}" ${lock ? 'disabled' : ''}/></label>
+        <label>c<input type="number" step="0.001" data-field="c" value="${selected.overrides.c ?? ''}" ${lock ? 'disabled' : ''}/></label>
+      </div>
+      <div class="selection-meta">${statusBadge(result?.status || 'standards default')} ${result ? `V=${format(result.velocity,1)} VP=${format(result.vp,4)} F'=${format(result.fdPrime,6)} F=${format(result.fd,4)} h_d=${format(result.loss,4)}` : ''}</div>
+    `;
+    return;
+  }
+
+  const node = selected;
+  const result = appState.results?.worksheetRows.find((row) => row.id === node.id)?.details;
+  const lock = !appState.settings.advancedUnlocked;
+  meta.innerHTML = `<strong>${node.label}</strong><br/>${window.Calc.componentTypeLabel(node.type)} • Branch ${node.branchId}`;
+
+  let specific = '';
+  if (node.type === 'hood') {
+    specific = `
+      <label>Hood Type
+        <select data-field="hoodType">${Object.keys(window.Calc.Standards.hood.types).map((k)=>`<option value="${k}" ${node.props.hoodType===k?'selected':''}>${k}</option>`).join('')}</select>
+      </label>
+      <label>Opening Area (ft²)<input type="number" step="0.01" data-field="openingAreaFt2" value="${node.props.openingAreaFt2}" /></label>
+      <label>Hood Elevation<input type="number" step="1" data-field="z" value="${node.position.z}" /></label>
+      <label>Enable F_h Override<input type="checkbox" data-field="enableFh" ${node.overrides.enableFh ? 'checked' : ''} ${lock ? 'disabled' : ''}/></label>
+      <label>F_h override<input type="number" step="0.01" data-field="fh" value="${node.overrides.fh ?? ''}" ${lock ? 'disabled' : ''}/></label>
+      <div class="selection-meta">${statusBadge(result?.status || 'standards default')} ${result ? `V_face=${format(result.faceVelocity,1)} VP_d=${format(result.vp,4)} h_h=${format(result.hH,4)} SP_h=${format(result.spH,4)}` : ''}</div>
+    `;
+  } else if (node.type === 'elbow') {
+    specific = `
+      <label>Angle (deg)<input type="number" data-field="angleDeg" value="${node.props.angleDeg}" /></label>
+      <label>R/D<input type="number" step="0.01" data-field="rd" value="${node.props.rd}" /></label>
+      <label>Elbow Type
+        <select data-field="elbowType">${['stamped','fivePiece','fourPiece','threePiece','mitered','miteredTurningVanes','flatback'].map((k)=>`<option value="${k}" ${node.props.elbowType===k?'selected':''}>${k}</option>`).join('')}</select>
+      </label>
+      <label>Enable F_el Override<input type="checkbox" data-field="enableFel" ${node.overrides.enableFel ? 'checked' : ''} ${lock ? 'disabled' : ''}/></label>
+      <label>F_el override<input type="number" step="0.01" data-field="fel" value="${node.overrides.fel ?? ''}" ${lock ? 'disabled' : ''}/></label>
+      <div class="selection-meta">${statusBadge(result?.status || 'standards default')} ${result ? `eq90=${format(result.equivalent90,3)} h_el=${format(result.loss,4)} matched=${result.matched || '-'}` : ''}</div>
+    `;
+  } else if (node.type === 'junction') {
+    specific = `
+      <label>Branch Angle (deg)<input type="number" data-field="branchAngleDeg" value="${node.props.branchAngleDeg}" /></label>
+      <label>Enable F_en Override<input type="checkbox" data-field="enableFen" ${node.overrides.enableFen ? 'checked' : ''} ${lock ? 'disabled' : ''}/></label>
+      <label>F_en override<input type="number" step="0.01" data-field="fen" value="${node.overrides.fen ?? ''}" ${lock ? 'disabled' : ''}/></label>
+      <div class="selection-meta">${statusBadge(result?.status || 'standards default')} ${result ? `h_en=${format(result.loss,4)} matched angle=${result.matchedAngle || '-'}` : ''}</div>
+    `;
+  } else if (node.type === 'fan') {
+    const points = (node.props.curvePoints || []).map((p) => `${p.q}:${p.sp}`).join(', ');
+    specific = `
+      <label>Fan Curve Points (q:sp)<textarea rows="3" data-field="curvePointsText">${points}</textarea></label>
+      <div class="selection-meta">Operating point: ${appState.results?.operatingPoint ? `${format(appState.results.operatingPoint.q,1)} cfm @ ${format(appState.results.operatingPoint.sp,3)} in.wg` : 'Not solved'}</div>
+    `;
+  } else if (node.type === 'filter') {
+    specific = `
+      <label>Filter ΔSP override<input type="number" step="0.01" data-field="dropInWg" value="${node.overrides.dropInWg ?? ''}" ${lock ? 'disabled' : ''}/></label>
+      <div class="selection-meta">${statusBadge(result?.status || 'standards default')} ${result ? `h_filter=${format(result.loss,4)}` : ''}</div>
+    `;
+  } else if (node.type === 'blastGate') {
+    specific = `
+      <label>Enable K Override<input type="checkbox" data-field="enableK" ${node.overrides.enableK ? 'checked' : ''} ${lock ? 'disabled' : ''}/></label>
+      <label>K override<input type="number" step="0.01" data-field="k" value="${node.overrides.k ?? ''}" ${lock ? 'disabled' : ''}/></label>
+      <div class="selection-meta">${statusBadge(result?.status || 'standards default')} ${result ? `h_gate=${format(result.loss,4)}` : ''}</div>
+    `;
+  }
+
+  form.innerHTML = `
+    <div class="property-grid" data-kind="node" data-id="${node.id}">
+      <label>Label<input data-field="label" value="${node.label}" /></label>
+      <label>Branch ID<input data-field="branchId" value="${node.branchId}" /></label>
+      <label>Flow (cfm)<input type="number" data-field="cfm" value="${node.props.cfm || 0}" /></label>
+      <label>Shape
+        <select data-field="shape">
+          <option value="round" ${node.props.shape === 'round' ? 'selected' : ''}>Round</option>
+          <option value="rectangular" ${node.props.shape === 'rectangular' ? 'selected' : ''}>Rectangular</option>
+        </select>
+      </label>
+      <label>Diameter (in)<input type="number" data-field="diameterIn" value="${node.props.diameterIn || 0}" /></label>
+      <label>Width (in)<input type="number" data-field="widthIn" value="${node.props.widthIn || 0}" /></label>
+      <label>Height (in)<input type="number" data-field="heightIn" value="${node.props.heightIn || 0}" /></label>
+      ${specific}
+    </div>
+  `;
+}
+
+function syncEdgeElevations(edge) {
+  const fromNode = appState.model.nodes.find((node) => node.id === edge.from);
+  const toNode = appState.model.nodes.find((node) => node.id === edge.to);
+  if (fromNode) {
+    fromNode.position.z = n(edge.props.startElevation, fromNode.position.z);
+  }
+  if (toNode) {
+    toNode.position.z = n(edge.props.endElevation, toNode.position.z);
+  }
+}
+
+function applyPropertyEdit(target) {
+  const selected = appState.ui.selected;
+  if (!selected) {
+    return;
+  }
+
+  if (selected.kind === 'edge') {
+    const edge = appState.model.edges.find((item) => item.id === selected.id);
+    if (!edge) {
+      return;
+    }
+    const field = target.dataset.field;
+    if (!field) {
+      return;
+    }
+    if (field === 'label') {
+      edge.label = target.value;
+    } else if (field === 'branchId') {
+      edge.branchId = target.value || 'MAIN';
+    } else if (field === 'order') {
+      edge.order = n(target.value, 1);
+    } else if (field === 'shape' || field === 'material') {
+      edge.props[field] = target.value;
+    } else if (['enableABC'].includes(field)) {
+      edge.overrides[field] = target.checked;
+    } else if (['a', 'b', 'c'].includes(field)) {
+      edge.overrides[field] = target.value === '' ? null : n(target.value);
+    } else if (field === 'lengthFt') {
+      edge.props.lengthFt = n(target.value, edge.props.lengthFt);
+      edge.props.lengthMode = 'manual';
+    } else if (['startElevation', 'endElevation'].includes(field)) {
+      edge.props[field] = n(target.value, 0);
+      syncEdgeElevations(edge);
+    } else if (['cfm', 'diameterIn', 'widthIn', 'heightIn'].includes(field)) {
+      edge.props[field] = n(target.value, 0);
+    }
+  } else {
+    const node = appState.model.nodes.find((item) => item.id === selected.id);
+    if (!node) {
+      return;
+    }
+    const field = target.dataset.field;
+    if (!field) {
+      return;
+    }
+    if (field === 'label') {
+      node.label = target.value;
+    } else if (field === 'branchId') {
+      node.branchId = target.value || 'MAIN';
+    } else if (field === 'shape' || field === 'hoodType' || field === 'elbowType') {
+      node.props[field] = target.value;
+    } else if (field === 'curvePointsText') {
+      node.props.curvePoints = target.value.split(',').map((pair) => {
+        const [q, sp] = pair.split(':').map((item) => Number(item.trim()));
+        return { q, sp };
+      }).filter((item) => Number.isFinite(item.q) && Number.isFinite(item.sp));
+    } else if (['enableFh', 'enableFel', 'enableFen', 'enableK'].includes(field)) {
+      node.overrides[field] = target.checked;
+    } else if (['fh', 'fel', 'fen', 'k', 'dropInWg'].includes(field)) {
+      node.overrides[field] = target.value === '' ? null : n(target.value);
+    } else if (field === 'z') {
+      node.position.z = n(target.value, node.position.z);
+      appState.model.edges.forEach((edge) => {
+        if (edge.from === node.id) {
+          edge.props.startElevation = node.position.z;
+        }
+        if (edge.to === node.id) {
+          edge.props.endElevation = node.position.z;
+        }
+      });
+    } else if (['cfm', 'diameterIn', 'widthIn', 'heightIn', 'openingAreaFt2', 'angleDeg', 'rd', 'wd', 'branchAngleDeg'].includes(field)) {
+      node.props[field] = n(target.value, 0);
+    }
+  }
+
+  calcAndRender();
+}
+
+function createNode(type, isoPos) {
+  const node = {
+    id: idFor('N', appState.model.nodes),
+    type,
+    label: `${window.Calc.componentTypeLabel(type)} ${appState.model.nodes.length + 1}`,
     branchId: 'B1',
-    order: appState.model.components.length + 1,
-    position: snapIso(isoPoint),
-    rotation: 0,
+    position: { ...isoPos },
+    props: { shape: 'round', diameterIn: 12, widthIn: 18, heightIn: 10, cfm: 1200, hoodType: 'plainOpening', openingAreaFt2: 4, geometry: 'round', elbowType: 'stamped', angleDeg: 90, rd: 1, wd: 1, branchAngleDeg: 45, curvePoints: [{ q: 2400, sp: 6.6 }, { q: 3200, sp: 5.3 }] },
+    overrides: { enableFh: false, enableFel: false, enableFen: false, enableK: false, fh: null, fel: null, fen: null, k: null, dropInWg: null }
+  };
+  appState.model.nodes.push(node);
+  return node;
+}
+
+function createDuctEdge(fromNodeId, toNodeId) {
+  const fromNode = appState.model.nodes.find((node) => node.id === fromNodeId);
+  const toNode = appState.model.nodes.find((node) => node.id === toNodeId);
+  if (!fromNode || !toNode) {
+    return;
+  }
+  const edge = {
+    id: idFor('D', appState.model.edges),
+    type: 'straightDuct',
+    label: `Run ${appState.model.edges.length + 1}`,
+    branchId: fromNode.branchId || 'B1',
+    order: appState.model.edges.filter((item) => item.branchId === (fromNode.branchId || 'B1')).length + 1,
+    from: fromNodeId,
+    to: toNodeId,
     props: {
       shape: 'round',
       diameterIn: 12,
       widthIn: 18,
       heightIn: 10,
-      cfm: 1200,
-      lengthFt: 20,
+      cfm: fromNode.props.cfm || 1200,
       material: 'otherSheetMetalPlastic',
-      angleDeg: 90,
-      rd: 1,
-      wd: 1,
-      elbowType: 'stamped',
-      branchAngleDeg: 45,
-      hoodType: 'plainOpening',
-      openingAreaFt2: 4,
-      curvePoints: [{ q: 2000, sp: 7 }, { q: 3200, sp: 5.6 }]
+      startElevation: fromNode.position.z,
+      endElevation: toNode.position.z,
+      lengthFt: 0,
+      lengthMode: 'geometry'
     },
-    overrides: { enableABC: false, enableFel: false, enableFen: false, enableFh: false, enableK: false, a: null, b: null, c: null, fel: null, fen: null, fh: null, k: null, dropInWg: null }
+    overrides: { enableABC: false, a: null, b: null, c: null }
   };
-  appState.model.components.push(component);
-  appState.ui.selectedId = component.id;
-  calcAndRender();
+  ensureEdgeEngineering(edge);
+  appState.model.edges.push(edge);
+  return edge;
 }
 
-function pointerToSvg(event) {
-  const rect = svg.getBoundingClientRect();
-  const x = (event.clientX - rect.left) / rect.width * 1200;
-  const y = (event.clientY - rect.top) / rect.height * 760;
-  const worldX = (x - 600 - appState.ui.panX) / appState.ui.zoom;
-  const worldY = (y - 190 - appState.ui.panY) / appState.ui.zoom;
-  return { x: worldX, y: worldY };
-}
+function startOrFinishDuctDraw(event) {
+  const point = screenPtFromEvent(event);
+  const nodeHit = nearestNode(point, 14);
 
-svg.addEventListener('click', (event) => {
-  const targetComponent = event.target.closest('.component');
-  if (targetComponent) {
-    appState.ui.selectedId = targetComponent.dataset.id;
-    renderCanvas();
-    renderPropertyPanel();
+  if (!appState.ui.drawStartNodeId) {
+    const node = nodeHit || createNode('elbow', screenToIso(point.x, point.y, 0));
+    appState.ui.drawStartNodeId = node.id;
+    appState.ui.selected = { kind: 'node', id: node.id };
     return;
   }
 
-  if (appState.ui.tool !== 'select') {
-    const pt = pointerToSvg(event);
-    const iso = screenToIso(pt.x, pt.y, 0);
-    addComponentAt(appState.ui.tool, iso);
+  const startNode = appState.model.nodes.find((node) => node.id === appState.ui.drawStartNodeId);
+  if (!startNode) {
+    appState.ui.drawStartNodeId = null;
+    return;
   }
-});
+
+  const startScreen = isoToScreen(startNode.position);
+  const snappedScreen = constrainToCadDirections(startScreen, point);
+  let endNode = nodeHit;
+
+  if (!endNode || endNode.id === startNode.id) {
+    endNode = createNode('elbow', screenToIso(snappedScreen.x, snappedScreen.y, startNode.position.z));
+  }
+
+  const edge = createDuctEdge(startNode.id, endNode.id);
+  appState.ui.selected = edge ? { kind: 'edge', id: edge.id } : appState.ui.selected;
+  appState.ui.drawStartNodeId = endNode.id;
+}
+
+function onCanvasClick(event) {
+  const edgeHit = event.target.closest('.duct-line');
+  if (edgeHit) {
+    appState.ui.selected = { kind: 'edge', id: edgeHit.dataset.edgeId };
+    calcAndRender();
+    return;
+  }
+
+  const nodeHit = event.target.closest('.node');
+  if (nodeHit) {
+    appState.ui.selected = { kind: 'node', id: nodeHit.dataset.nodeId };
+    if (appState.ui.tool === 'straightDuct') {
+      appState.ui.drawStartNodeId = nodeHit.dataset.nodeId;
+    }
+    calcAndRender();
+    return;
+  }
+
+  const point = screenPtFromEvent(event);
+  const iso = screenToIso(point.x, point.y, 0);
+
+  if (appState.ui.tool === 'straightDuct') {
+    startOrFinishDuctDraw(event);
+  } else if (appState.ui.tool !== 'select') {
+    const node = createNode(appState.ui.tool, iso);
+    appState.ui.selected = { kind: 'node', id: node.id };
+    appState.ui.drawStartNodeId = null;
+  } else {
+    appState.ui.selected = null;
+  }
+
+  calcAndRender();
+}
+
+function exportDxf() {
+  const lines = [];
+  lines.push('0','SECTION','2','HEADER','0','ENDSEC');
+  lines.push('0','SECTION','2','ENTITIES');
+
+  appState.model.edges.forEach((edge) => {
+    const aNode = appState.model.nodes.find((node) => node.id === edge.from);
+    const bNode = appState.model.nodes.find((node) => node.id === edge.to);
+    if (!aNode || !bNode) {
+      return;
+    }
+    lines.push('0','LINE','8','DUCT_CENTERLINE',
+      '10', String(aNode.position.x), '20', String(aNode.position.y), '30', String(aNode.position.z),
+      '11', String(bNode.position.x), '21', String(bNode.position.y), '31', String(bNode.position.z));
+
+    const midX = (aNode.position.x + bNode.position.x) / 2;
+    const midY = (aNode.position.y + bNode.position.y) / 2;
+    const midZ = (aNode.position.z + bNode.position.z) / 2;
+    lines.push('0','TEXT','8','LABELS','10',String(midX),'20',String(midY),'30',String(midZ),'40','2.5','1',edge.label);
+  });
+
+  appState.model.nodes.forEach((node) => {
+    if (node.type === 'hood') {
+      const p = node.position;
+      const points = [
+        [p.x - 10, p.y - 3, p.z], [p.x + 10, p.y - 3, p.z], [p.x + 6, p.y + 5, p.z], [p.x - 6, p.y + 5, p.z], [p.x - 10, p.y - 3, p.z]
+      ];
+      for (let i = 0; i < points.length - 1; i += 1) {
+        const a = points[i];
+        const b = points[i + 1];
+        lines.push('0','LINE','8','HOODS','10',String(a[0]),'20',String(a[1]),'30',String(a[2]),'11',String(b[0]),'21',String(b[1]),'31',String(b[2]));
+      }
+    }
+
+    if (['fan','filter','blastGate','elbow','junction'].includes(node.type)) {
+      lines.push('0','POINT','8',`NODE_${node.type.toUpperCase()}`,'10',String(node.position.x),'20',String(node.position.y),'30',String(node.position.z));
+    }
+  });
+
+  lines.push('0','ENDSEC','0','EOF');
+
+  const blob = new Blob([`${lines.join('\n')}\n`], { type: 'application/dxf' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'duct-layout.dxf';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+svg.addEventListener('click', onCanvasClick);
 
 svg.addEventListener('mousedown', (event) => {
   if (event.shiftKey) {
@@ -460,20 +774,45 @@ svg.addEventListener('mousedown', (event) => {
     return;
   }
 
-  const targetComponent = event.target.closest('.component');
-  if (appState.ui.tool === 'select' && targetComponent) {
-    appState.ui.dragId = targetComponent.dataset.id;
-    const selected = appState.model.components.find((c) => c.id === appState.ui.dragId);
-    if (!selected) {
-      return;
+  if (appState.ui.tool !== 'select') {
+    return;
+  }
+
+  const nodeEl = event.target.closest('.node');
+  const edgeEl = event.target.closest('.duct-line');
+  if (nodeEl) {
+    appState.ui.dragRef = { kind: 'node', id: nodeEl.dataset.nodeId };
+  } else if (edgeEl) {
+    appState.ui.dragRef = { kind: 'edge', id: edgeEl.dataset.edgeId };
+  }
+
+  if (appState.ui.dragRef) {
+    const pt = screenPtFromEvent(event);
+    if (appState.ui.dragRef.kind === 'node') {
+      const node = appState.model.nodes.find((item) => item.id === appState.ui.dragRef.id);
+      if (!node) {
+        return;
+      }
+      const p = isoToScreen(node.position);
+      appState.ui.dragOffset = { x: p.x - pt.x, y: p.y - pt.y };
+    } else {
+      appState.ui.dragOffset = { x: pt.x, y: pt.y };
     }
-    const pt = pointerToSvg(event);
-    const current = isoToScreen(selected.position);
-    appState.ui.dragOffset = { x: current.x - pt.x, y: current.y - pt.y };
   }
 });
 
 window.addEventListener('mousemove', (event) => {
+  const pt = screenPtFromEvent(event);
+
+  if (appState.ui.tool === 'straightDuct' && appState.ui.drawStartNodeId) {
+    const start = appState.model.nodes.find((node) => node.id === appState.ui.drawStartNodeId);
+    if (start) {
+      const startScreen = isoToScreen(start.position);
+      appState.ui.previewPoint = constrainToCadDirections(startScreen, pt);
+      drawPreview();
+    }
+  }
+
   if (appState.ui.isPanning) {
     appState.ui.panX = event.clientX - appState.ui.dragOffset.x;
     appState.ui.panY = event.clientY - appState.ui.dragOffset.y;
@@ -481,24 +820,41 @@ window.addEventListener('mousemove', (event) => {
     return;
   }
 
-  if (!appState.ui.dragId) {
+  if (!appState.ui.dragRef) {
     return;
   }
 
-  const component = appState.model.components.find((c) => c.id === appState.ui.dragId);
-  if (!component) {
-    return;
+  if (appState.ui.dragRef.kind === 'node') {
+    const node = appState.model.nodes.find((item) => item.id === appState.ui.dragRef.id);
+    if (!node) {
+      return;
+    }
+    const targetScreen = { x: pt.x + appState.ui.dragOffset.x, y: pt.y + appState.ui.dragOffset.y };
+    const iso = screenToIso(targetScreen.x, targetScreen.y, node.position.z);
+    node.position.x = Math.round(iso.x / 20) * 20;
+    node.position.y = Math.round(iso.y / 20) * 20;
+
+    appState.model.edges.forEach((edge) => {
+      if (edge.from === node.id) {
+        edge.props.startElevation = node.position.z;
+        if (edge.props.lengthMode !== 'manual') {
+          ensureEdgeEngineering(edge);
+        }
+      }
+      if (edge.to === node.id) {
+        edge.props.endElevation = node.position.z;
+        if (edge.props.lengthMode !== 'manual') {
+          ensureEdgeEngineering(edge);
+        }
+      }
+    });
+
+    renderCanvas();
   }
-  const pt = pointerToSvg(event);
-  const target = { x: pt.x + appState.ui.dragOffset.x, y: pt.y + appState.ui.dragOffset.y };
-  const iso = snapIso(screenToIso(target.x, target.y, component.position.z));
-  component.position.x = iso.x;
-  component.position.y = iso.y;
-  renderCanvas();
 });
 
 window.addEventListener('mouseup', () => {
-  appState.ui.dragId = null;
+  appState.ui.dragRef = null;
   appState.ui.isPanning = false;
 });
 
@@ -515,55 +871,13 @@ document.getElementById('toolButtons').addEventListener('click', (event) => {
     return;
   }
   appState.ui.tool = button.dataset.tool;
+  appState.ui.drawStartNodeId = null;
+  appState.ui.previewPoint = null;
   renderToolButtons();
+  drawPreview();
 });
 
-document.getElementById('propertyForm').addEventListener('input', (event) => {
-  const selected = getSelectedComponent();
-  if (!selected) {
-    return;
-  }
-
-  const target = event.target;
-  if (target.dataset.prop) {
-    const key = target.dataset.prop;
-    if (key === 'label') {
-      selected.label = target.value;
-    } else if (key === 'branchId') {
-      selected.branchId = target.value || 'MAIN';
-    } else if (key === 'order') {
-      selected.order = Number(target.value) || 1;
-    } else if (key === 'rotation') {
-      selected.rotation = Number(target.value) || 0;
-    } else if (key === 'curvePointsText') {
-      selected.props.curvePoints = target.value.split(',').map((p) => {
-        const [q, sp] = p.split(':').map((v) => Number(v.trim()));
-        return { q: Number.isFinite(q) ? q : 0, sp: Number.isFinite(sp) ? sp : 0 };
-      }).filter((p) => p.q > 0);
-    } else if (['cfm','diameterIn','widthIn','heightIn','lengthFt','angleDeg','rd','wd','branchAngleDeg','openingAreaFt2'].includes(key)) {
-      selected.props[key] = Number(target.value) || 0;
-    } else {
-      selected.props[key] = target.value;
-    }
-  }
-
-  if (target.dataset.position) {
-    const key = target.dataset.position;
-    selected.position[key] = Number(target.value) || 0;
-  }
-
-  if (target.dataset.override) {
-    const key = target.dataset.override;
-    selected.overrides[key] = target.value === '' ? null : Number(target.value);
-  }
-
-  if (target.dataset.overrideFlag) {
-    selected.overrides[target.dataset.overrideFlag] = target.checked;
-  }
-
-  calcAndRender();
-});
-
+document.getElementById('propertyForm').addEventListener('input', (event) => applyPropertyEdit(event.target));
 document.getElementById('calculateBtn').addEventListener('click', calcAndRender);
 document.getElementById('printBtn').addEventListener('click', () => window.print());
 document.getElementById('settingsBtn').addEventListener('click', () => document.getElementById('settingsPanel').classList.toggle('hidden'));
@@ -573,15 +887,15 @@ document.getElementById('toggleAdvancedBtn').addEventListener('click', () => {
   renderPropertyPanel();
   calcAndRender();
 });
-
 document.getElementById('densityFactorInput').addEventListener('input', (event) => {
-  appState.settings.densityFactor = Number(event.target.value) || 1;
+  appState.settings.densityFactor = n(event.target.value, 1);
   calcAndRender();
 });
 document.getElementById('fanModeInput').addEventListener('change', (event) => {
   appState.settings.fanCurveEnabled = event.target.checked;
   calcAndRender();
 });
+document.getElementById('exportDxfBtn').addEventListener('click', exportDxf);
 
-calcAndRender();
 renderToolButtons();
+calcAndRender();

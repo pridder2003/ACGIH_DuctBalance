@@ -16,7 +16,8 @@
         <button id="calculateBtn">Calculate / Solve</button>
         <button id="settingsBtn" class="secondary">Settings</button>
         <button id="toggleAdvancedBtn" class="secondary">Advanced: Locked</button>
-        <button id="printBtn" class="secondary">Print / Export</button>
+        <button id="exportDxfBtn" class="secondary">Export DXF</button>
+        <button id="printBtn" class="secondary">Print</button>
       </div>
       <div class="fan-summary" id="fanSummary">Fan: not solved</div>
     </header>
@@ -39,8 +40,8 @@
         <h3>Tools</h3>
         <div id="toolButtons" class="tool-buttons">
           <button data-tool="select" class="tool active">Select / Move</button>
+          <button data-tool="straightDuct" class="tool">Draw Duct</button>
           <button data-tool="hood" class="tool">Hood</button>
-          <button data-tool="straightDuct" class="tool">Straight Duct</button>
           <button data-tool="elbow" class="tool">Elbow</button>
           <button data-tool="junction" class="tool">Junction</button>
           <button data-tool="blastGate" class="tool">Blast Gate</button>
@@ -52,27 +53,29 @@
       <section class="workspace panel">
         <div class="workspace-header">
           <h2>Isometric System Diagram</h2>
-          <small>Click to place • Drag to move • Wheel to zoom • Shift+drag background to pan</small>
+          <small>Draw ducts as connected snapped lines • Shift+drag to pan • Wheel to zoom</small>
         </div>
         <div id="canvasWrap" class="canvas-wrap">
           <svg id="isoCanvas" viewBox="0 0 1200 760" aria-label="Isometric duct layout canvas">
             <defs>
               <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
-                <path d="M0,0 L0,6 L7,3 z" fill="#355a80"></path>
+                <path d="M0,0 L0,6 L7,3 z" fill="#2e557d"></path>
               </marker>
             </defs>
             <g id="viewportGroup">
               <g id="gridLayer"></g>
-              <g id="connectionLayer"></g>
-              <g id="componentLayer"></g>
+              <g id="edgeLayer"></g>
+              <g id="previewLayer"></g>
+              <g id="nodeLayer"></g>
+              <g id="labelLayer"></g>
             </g>
           </svg>
         </div>
       </section>
 
       <aside class="property-panel panel">
-        <h2>Properties</h2>
-        <div id="selectionMeta" class="selection-meta">No component selected.</div>
+        <h2>Engineering Properties</h2>
+        <div id="selectionMeta" class="selection-meta">No item selected.</div>
         <div id="propertyForm"></div>
       </aside>
     </main>
