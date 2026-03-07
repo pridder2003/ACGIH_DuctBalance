@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Industrial Ventilation Designer (ACGIH-style)</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="topbar-left">
+        <h1>Industrial Ventilation Designer</h1>
+        <p>Diagram-first ACGIH-style balance-by-design engineering tool</p>
+      </div>
+      <div class="topbar-actions">
+        <button id="calculateBtn">Calculate / Solve</button>
+        <button id="settingsBtn" class="secondary">Settings</button>
+        <button id="toggleAdvancedBtn" class="secondary">Advanced: Locked</button>
+        <button id="exportDxfBtn" class="secondary">Export DXF</button>
+        <button id="printBtn" class="secondary">Print</button>
+      </div>
+      <div class="fan-summary" id="fanSummary">Fan: not solved</div>
+    </header>
+
+    <section id="settingsPanel" class="settings-panel hidden">
+      <h2>Settings</h2>
+      <div class="settings-grid">
+        <label>Air Density Factor
+          <input id="densityFactorInput" type="number" min="0.5" step="0.01" value="1" />
+        </label>
+        <label>
+          <input id="fanModeInput" type="checkbox" /> Enable Fan Curve Operating-Point Solver
+        </label>
+      </div>
+      <small>Defaults are standards-locked in normal mode. Unlock Advanced Mode to edit override values.</small>
+    </section>
+
+    <main class="app-shell">
+      <aside class="left-toolbar panel">
+        <h3>Tools</h3>
+        <div id="toolButtons" class="tool-buttons">
+          <button data-tool="select" class="tool active">Select / Move</button>
+          <button data-tool="straightDuct" class="tool">Draw Duct</button>
+          <button data-tool="hood" class="tool">Hood</button>
+          <button data-tool="elbow" class="tool">Elbow</button>
+          <button data-tool="junction" class="tool">Junction</button>
+          <button data-tool="blastGate" class="tool">Blast Gate</button>
+          <button data-tool="fan" class="tool">Fan</button>
+          <button data-tool="filter" class="tool">Filter</button>
+        </div>
+      </aside>
+
+      <section class="workspace panel">
+        <div class="workspace-header">
+          <h2>Isometric System Diagram</h2>
+          <small>Draw ducts as connected snapped lines • Shift+drag to pan • Wheel to zoom</small>
+        </div>
+        <div id="canvasWrap" class="canvas-wrap">
+          <svg id="isoCanvas" viewBox="0 0 1200 760" aria-label="Isometric duct layout canvas">
+            <defs>
+              <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+                <path d="M0,0 L0,6 L7,3 z" fill="#2e557d"></path>
+              </marker>
+            </defs>
+            <g id="viewportGroup">
+              <g id="gridLayer"></g>
+              <g id="edgeLayer"></g>
+              <g id="previewLayer"></g>
+              <g id="nodeLayer"></g>
+              <g id="labelLayer"></g>
+            </g>
+          </svg>
+        </div>
+      </section>
+
+      <aside class="property-panel panel">
+        <h2>Engineering Properties</h2>
+        <div id="selectionMeta" class="selection-meta">No item selected.</div>
+        <div id="propertyForm"></div>
+      </aside>
+    </main>
+
+    <section class="chart-panel panel">
+      <h2>Engineering Calculation Chart (Generated from Diagram)</h2>
+      <div id="resultSummary" class="result-summary"></div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Line ID</th>
+              <th>Branch</th>
+              <th>Component</th>
+              <th>Type</th>
+              <th>Flow (cfm)</th>
+              <th>Size</th>
+              <th>Eq D (in)</th>
+              <th>Velocity</th>
+              <th>VPd</th>
+              <th>Loss Coef</th>
+              <th>Loss (in.wg)</th>
+              <th>Cumulative SP</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="chartBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <script src="calc.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
