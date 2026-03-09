@@ -1,33 +1,28 @@
 :root {
   --bg: #edf2f8;
-  --panel: #ffffff;
-  --text: #1b3047;
-  --muted: #5b738c;
+  --panel: #fff;
+  --text: #1e334a;
+  --muted: #5f788f;
   --border: #d4dfeb;
   --primary: #0b5fae;
-  --primary-dark: #074a88;
-  --accent: #1d7f5c;
+  --primary-dark: #084b8a;
+  --accent: #1c7f5b;
 }
 
 * { box-sizing: border-box; }
-body {
-  margin: 0;
-  font-family: Inter, Segoe UI, Arial, sans-serif;
-  background: var(--bg);
-  color: var(--text);
-}
+body { margin: 0; font-family: Inter, Segoe UI, Arial, sans-serif; background: var(--bg); color: var(--text); }
 
 .topbar {
   display: grid;
   grid-template-columns: 1.2fr auto auto;
   align-items: center;
   gap: 0.8rem;
-  background: #10263a;
-  color: #eaf2fe;
+  background: #11273a;
+  color: #eaf3ff;
   padding: 0.75rem 1rem;
 }
-.topbar h1 { margin: 0; font-size: 1.18rem; }
-.topbar p { margin: 0.18rem 0 0; color: #bbcee4; font-size: 0.84rem; }
+.topbar h1 { margin: 0; font-size: 1.16rem; }
+.topbar p { margin: 0.16rem 0 0; font-size: 0.84rem; color: #bdd1e8; }
 .topbar-actions { display: flex; gap: 0.45rem; flex-wrap: wrap; }
 .fan-summary { font-weight: 700; font-size: 0.88rem; }
 
@@ -41,12 +36,12 @@ button {
   cursor: pointer;
 }
 button:hover { background: var(--primary-dark); }
-button.secondary { background: #3e5a74; }
-button.tool { width: 100%; text-align: left; background: #2d4b68; }
+button.secondary { background: #3d5b75; }
+button.tool { width: 100%; text-align: left; background: #2d4b69; }
 button.tool.active { background: var(--accent); }
 
 .settings-panel {
-  background: #f6faff;
+  background: #f7fbff;
   border-bottom: 1px solid var(--border);
   padding: 0.75rem 1rem;
 }
@@ -55,7 +50,7 @@ button.tool.active { background: var(--accent); }
 
 .app-shell {
   display: grid;
-  grid-template-columns: 210px 1fr 370px;
+  grid-template-columns: 210px 1fr 375px;
   gap: 0.8rem;
   padding: 0.8rem;
   min-height: 62vh;
@@ -74,14 +69,48 @@ button.tool.active { background: var(--accent); }
 .workspace-header { padding: 0.72rem 0.9rem 0.35rem; border-bottom: 1px solid var(--border); }
 .workspace-header h2 { margin: 0; font-size: 1rem; }
 .workspace-header small { color: var(--muted); }
-.canvas-wrap { padding: 0.5rem; flex: 1; min-height: 590px; }
+.canvas-wrap { padding: 0.5rem; flex: 1; min-height: 620px; }
 #isoCanvas {
   width: 100%;
   height: 100%;
   border: 1px solid var(--border);
   border-radius: 8px;
-  background: linear-gradient(180deg, #fbfdff, #f5f9fd);
+  background: linear-gradient(180deg, #fcfdff, #f5f9fd);
 }
+
+.duct-line {
+  stroke: #2b5279;
+  stroke-width: 3.3;
+  fill: none;
+  stroke-linecap: square;
+  cursor: pointer;
+}
+.duct-line.selected {
+  stroke: #f6a019;
+  stroke-width: 4.1;
+}
+.duct-preview {
+  stroke: #88a7c4;
+  stroke-width: 2.8;
+  stroke-dasharray: 7 4;
+  fill: none;
+}
+
+.node { cursor: pointer; }
+.node-dot { fill: #2f577e; stroke: #2f577e; }
+.junction-y { stroke: #2f577e; stroke-width: 1.6; fill: none; }
+.hood-shape { fill: #f8fffb; stroke: #1f7f5b; stroke-width: 2; }
+.fan-ring { fill: #f3ecff; stroke: #5f42a4; stroke-width: 2; }
+.fan-blade { fill: #5f42a4; }
+.inline-symbol { fill: #fff9ed; stroke: #786225; stroke-width: 1.8; }
+.filter-hatch { stroke: #786225; stroke-width: 1.2; }
+.gate-line { stroke: #8a3636; stroke-width: 1.4; }
+.node.selected .node-dot,
+.node.selected .hood-shape,
+.node.selected .fan-ring,
+.node.selected .inline-symbol { stroke: #f6a019 !important; stroke-width: 2.6px !important; }
+
+.edge-label, .node-label { font-size: 11px; fill: #2f4f6f; font-weight: 600; }
 
 .property-panel { padding: 0.8rem; overflow: auto; }
 .property-panel h2 { margin-top: 0; }
@@ -90,8 +119,8 @@ button.tool.active { background: var(--accent); }
   background: #f5f9fd;
   border-radius: 6px;
   padding: 0.5rem;
-  font-size: 0.84rem;
   margin-bottom: 0.6rem;
+  font-size: 0.84rem;
 }
 .property-grid {
   display: grid;
@@ -125,58 +154,27 @@ input[disabled], select[disabled], textarea[disabled] { background: #eef3f8; col
 .result-card p { margin: 0.22rem 0 0; font-weight: 700; }
 
 .table-wrap { overflow: auto; }
-table { width: 100%; border-collapse: collapse; min-width: 1180px; }
+table { width: 100%; border-collapse: collapse; min-width: 1280px; background: #fff; }
 th, td {
-  border: 1px solid var(--border);
-  padding: 0.3rem;
-  font-size: 0.78rem;
-  text-align: left;
+  border: 1px solid #8f9dac;
+  padding: 0.25rem 0.28rem;
+  font-size: 0.74rem;
+  text-align: center;
   white-space: nowrap;
 }
-thead th { background: #edf4fb; }
-tr.section td { background: #f5f9fe; font-weight: 700; }
-
-.duct-line {
-  stroke: #274d74;
-  stroke-width: 3.4;
-  fill: none;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  cursor: pointer;
+#sheetHead th { background: #d8dee8; font-size: 0.73rem; }
+.param-col {
+  text-align: left;
+  min-width: 260px;
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: #f1f5fa;
 }
-.duct-line.selected {
-  stroke: #ff9e1b;
-  stroke-width: 4.2;
-}
-.duct-preview {
-  stroke: #86a4c1;
-  stroke-width: 2.7;
-  stroke-dasharray: 7 4;
-  fill: none;
-}
-.node { cursor: pointer; }
-.node.selected .node-dot,
-.node.selected .hood-shape,
-.node.selected .fan-ring,
-.node.selected .inline-symbol {
-  stroke: #ff9e1b !important;
-  stroke-width: 2.6px !important;
-}
-.node-dot { fill: #2f567f; stroke: #2f567f; }
-.node-dot.secondary { fill: #4f6881; stroke: #4f6881; }
-.junction-y { stroke: #2f567f; stroke-width: 1.6; fill: none; }
-.hood-shape { fill: #f8fffb; stroke: #1f7f5b; stroke-width: 2; }
-.fan-ring { fill: #f4edff; stroke: #5f42a4; stroke-width: 2; }
-.fan-blade { fill: #5f42a4; }
-.inline-symbol { fill: #fff9ed; stroke: #786225; stroke-width: 1.8; }
-.filter-hatch { stroke: #786225; stroke-width: 1.2; }
-.gate-line { stroke: #8a3636; stroke-width: 1.4; }
-
-.edge-label, .node-label {
-  font-size: 11px;
-  fill: #314f6d;
-  font-weight: 600;
-}
+.sheet-row.yellow td, .sheet-row.yellow .param-col { background: #f8f7d7; }
+.sheet-row.green td, .sheet-row.green .param-col { background: #e8f5dd; }
+.sheet-row.orange td, .sheet-row.orange .param-col { background: #fde8c7; }
+.sheet-row.pink td, .sheet-row.pink .param-col { background: #f8e5ea; }
 
 @media (max-width: 1360px) {
   .app-shell { grid-template-columns: 210px 1fr; }

@@ -152,3 +152,16 @@ npm run check
 - Defaults should be validated against project-specific standards and references.
 - Fan/system solver is practical V1 groundwork and should be verified against detailed final design and manufacturer curves.
 - Final design responsibility remains with qualified engineering review.
+
+
+## CAD-like interaction controls
+
+- **Pan**: hold `Shift` and drag on canvas, or hold `Space` while dragging.
+- **Zoom**: mouse wheel on canvas.
+- **Constrained duct drawing**: ducts snap to horizontal, vertical, +60°, and -60° directions.
+- **Delete**: select a duct run or node and press `Delete` (or `Backspace`).
+- **DXF export**: use **Export DXF** in the top bar to download the current layout.
+
+## Spreadsheet-style output format
+
+The engineering output table now uses a worksheet-style, banded spreadsheet layout with parameter rows and component columns to better mirror ACGIH VP worksheet usage.

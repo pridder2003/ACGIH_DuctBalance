@@ -13,8 +13,11 @@ const appState = {
     isPanning: false,
     dragRef: null,
     dragOffset: { x: 0, y: 0 },
+    dragStartScreen: null,
+    dragOriginIso: null,
     drawStartNodeId: null,
-    previewPoint: null
+    previewPoint: null,
+    panMode: false
   },
   model: {
     nodes: [
@@ -42,21 +45,21 @@ const appState = {
 const svg = document.getElementById('isoCanvas');
 const viewportGroup = document.getElementById('viewportGroup');
 
-function idFor(prefix, list) {
-  const index = list.length + 1;
-  return `${prefix}${index}`;
-}
-
 function n(value, fallback = 0) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+function format(value, digits = 3) {
+  return Number.isFinite(value) ? value.toFixed(digits) : '—';
+}
+
+function idFor(prefix, list) {
+  return `${prefix}${list.length + 1}`;
+}
+
 function isoToScreen(position) {
-  return {
-    x: position.x - position.y,
-    y: (position.x + position.y) * 0.5 - position.z
-  };
+  return { x: position.x - position.y, y: (position.x + position.y) * 0.5 - position.z };
 }
 
 function screenToIso(x, y, z = 0) {
@@ -69,62 +72,51 @@ function dist2(a, b) {
   return dx * dx + dy * dy;
 }
 
-function format(value, digits = 3) {
-  return Number.isFinite(value) ? value.toFixed(digits) : '—';
-}
-
 function screenPtFromEvent(event) {
   const rect = svg.getBoundingClientRect();
   const sx = ((event.clientX - rect.left) / rect.width) * 1200;
   const sy = ((event.clientY - rect.top) / rect.height) * 760;
-  const x = (sx - 600 - appState.ui.panX) / appState.ui.zoom;
-  const y = (sy - 190 - appState.ui.panY) / appState.ui.zoom;
-  return { x, y };
+  return {
+    x: (sx - 600 - appState.ui.panX) / appState.ui.zoom,
+    y: (sy - 190 - appState.ui.panY) / appState.ui.zoom
+  };
 }
 
-function nearestNode(screenPt, maxRadius = 18) {
+function nearestNode(screenPt, maxRadius = 16) {
   let best = null;
-  let bestD2 = Infinity;
+  let bestD = Infinity;
   appState.model.nodes.forEach((node) => {
     const p = isoToScreen(node.position);
     const d = dist2(screenPt, p);
-    if (d < bestD2) {
-      bestD2 = d;
+    if (d < bestD) {
       best = node;
+      bestD = d;
     }
   });
-  return bestD2 <= maxRadius * maxRadius ? best : null;
+  return bestD <= maxRadius * maxRadius ? best : null;
 }
 
 function allowedDirections() {
-  const cos60 = Math.cos(Math.PI / 3);
-  const sin60 = Math.sin(Math.PI / 3);
+  const c = Math.cos(Math.PI / 3);
+  const s = Math.sin(Math.PI / 3);
   return [
-    { x: 1, y: 0 },
-    { x: -1, y: 0 },
-    { x: 0, y: 1 },
-    { x: 0, y: -1 },
-    { x: cos60, y: sin60 },
-    { x: -cos60, y: -sin60 },
-    { x: cos60, y: -sin60 },
-    { x: -cos60, y: sin60 }
+    { x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 },
+    { x: c, y: s }, { x: -c, y: -s }, { x: c, y: -s }, { x: -c, y: s }
   ];
 }
 
 function constrainToCadDirections(startScreen, currentScreen) {
   const v = { x: currentScreen.x - startScreen.x, y: currentScreen.y - startScreen.y };
-  const dirs = allowedDirections();
-  let best = dirs[0];
+  let best = allowedDirections()[0];
   let bestProj = -Infinity;
-  dirs.forEach((dir) => {
+  allowedDirections().forEach((dir) => {
     const proj = v.x * dir.x + v.y * dir.y;
     if (proj > bestProj) {
       bestProj = proj;
       best = dir;
     }
   });
-
-  const length = Math.max(0, bestProj);
+  const length = Math.max(bestProj, 0);
   return { x: startScreen.x + best.x * length, y: startScreen.y + best.y * length };
 }
 
@@ -135,44 +127,20 @@ function updateViewportTransform() {
 function drawGrid() {
   const layer = document.getElementById('gridLayer');
   layer.innerHTML = '';
-  const pathData = [];
-  for (let i = -900; i <= 900; i += 50) {
-    pathData.push(`M ${i} -680 L ${i + 1300} -30`);
-    pathData.push(`M ${i} 680 L ${i - 1300} 30`);
+  const d = [];
+  for (let i = -1000; i <= 1000; i += 60) {
+    d.push(`M ${i} -760 L ${i + 1500} -10`);
+    d.push(`M ${i} 760 L ${i - 1500} 10`);
   }
-  for (let j = -680; j <= 680; j += 50) {
-    pathData.push(`M -1300 ${j} L 1300 ${j}`);
+  for (let j = -760; j <= 760; j += 60) {
+    d.push(`M -1500 ${j} L 1500 ${j}`);
   }
-  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-  path.setAttribute('d', pathData.join(' '));
-  path.setAttribute('stroke', '#edf2f7');
-  path.setAttribute('stroke-width', '0.9');
-  path.setAttribute('fill', 'none');
-  layer.appendChild(path);
-}
-
-function nodeSymbol(node, connectedVector) {
-  if (node.type === 'hood') {
-    return '<polygon points="-18,9 18,9 10,-9 -10,-9" class="hood-shape" />';
-  }
-  if (node.type === 'elbow') {
-    return '<circle r="4.5" class="node-dot" />';
-  }
-  if (node.type === 'junction') {
-    return '<circle r="4" class="node-dot" /><path d="M 0 0 L 12 0 M 0 0 L -8 -7 M 0 0 L -8 7" class="junction-y" />';
-  }
-  if (node.type === 'fan') {
-    return '<circle r="9" class="fan-ring" /><path d="M -2 -1 L 7 1 L -1 6 z" class="fan-blade" />';
-  }
-  if (node.type === 'filter') {
-    const rot = connectedVector ? Math.atan2(connectedVector.y, connectedVector.x) * 180 / Math.PI : 0;
-    return `<g transform="rotate(${rot})"><rect x="-8" y="-6" width="16" height="12" class="inline-symbol"/><path d="M -6 -6 L -3 6 M 0 -6 L 3 6 M 6 -6 L 8 6" class="filter-hatch"/></g>`;
-  }
-  if (node.type === 'blastGate') {
-    const rot = connectedVector ? Math.atan2(connectedVector.y, connectedVector.x) * 180 / Math.PI : 0;
-    return `<g transform="rotate(${rot})"><rect x="-7" y="-4" width="14" height="8" class="inline-symbol"/><path d="M -6 -5 L 6 5" class="gate-line"/></g>`;
-  }
-  return '<circle r="3.5" class="node-dot secondary" />';
+  const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  p.setAttribute('d', d.join(' '));
+  p.setAttribute('stroke', '#ebf1f8');
+  p.setAttribute('stroke-width', '0.85');
+  p.setAttribute('fill', 'none');
+  layer.appendChild(p);
 }
 
 function connectedVectorForNode(nodeId) {
@@ -191,6 +159,30 @@ function connectedVectorForNode(nodeId) {
   return { x: b.x - a.x, y: b.y - a.y };
 }
 
+function nodeSymbol(node, vec) {
+  if (node.type === 'hood') {
+    return '<polygon points="-18,9 18,9 10,-9 -10,-9" class="hood-shape" />';
+  }
+  if (node.type === 'elbow') {
+    return '<circle r="4.5" class="node-dot" />';
+  }
+  if (node.type === 'junction') {
+    return '<circle r="4" class="node-dot" /><path d="M0 0 L12 0 M0 0 L-8 -7 M0 0 L-8 7" class="junction-y" />';
+  }
+  if (node.type === 'fan') {
+    return '<circle r="9" class="fan-ring" /><path d="M -2 -1 L 7 1 L -1 6 z" class="fan-blade" />';
+  }
+  if (node.type === 'filter') {
+    const r = Math.atan2(vec.y, vec.x) * 180 / Math.PI;
+    return `<g transform="rotate(${r})"><rect x="-8" y="-6" width="16" height="12" class="inline-symbol"/><path d="M -6 -6 L -3 6 M 0 -6 L 3 6 M 6 -6 L 8 6" class="filter-hatch"/></g>`;
+  }
+  if (node.type === 'blastGate') {
+    const r = Math.atan2(vec.y, vec.x) * 180 / Math.PI;
+    return `<g transform="rotate(${r})"><rect x="-7" y="-4" width="14" height="8" class="inline-symbol"/><path d="M -6 -5 L 6 5" class="gate-line"/></g>`;
+  }
+  return '<circle r="4" class="node-dot" />';
+}
+
 function drawEdges() {
   const edgeLayer = document.getElementById('edgeLayer');
   const labelLayer = document.getElementById('labelLayer');
@@ -206,19 +198,19 @@ function drawEdges() {
     const a = isoToScreen(fromNode.position);
     const b = isoToScreen(toNode.position);
 
-    const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    line.setAttribute('d', `M ${a.x} ${a.y} L ${b.x} ${b.y}`);
-    line.setAttribute('class', `duct-line ${appState.ui.selected?.kind === 'edge' && appState.ui.selected.id === edge.id ? 'selected' : ''}`);
-    line.dataset.edgeId = edge.id;
-    edgeLayer.appendChild(line);
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', `M ${a.x} ${a.y} L ${b.x} ${b.y}`);
+    path.setAttribute('class', `duct-line ${appState.ui.selected?.kind === 'edge' && appState.ui.selected.id === edge.id ? 'selected' : ''}`);
+    path.dataset.edgeId = edge.id;
+    edgeLayer.appendChild(path);
 
     const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
-    const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    txt.setAttribute('x', `${mid.x + 5}`);
-    txt.setAttribute('y', `${mid.y - 6}`);
-    txt.setAttribute('class', 'edge-label');
-    txt.textContent = `${edge.label} (${format(edge.props.cfm, 0)} cfm)`;
-    labelLayer.appendChild(txt);
+    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    text.setAttribute('x', `${mid.x + 5}`);
+    text.setAttribute('y', `${mid.y - 5}`);
+    text.setAttribute('class', 'edge-label');
+    text.textContent = `${edge.label}`;
+    labelLayer.appendChild(text);
   });
 }
 
@@ -226,23 +218,22 @@ function drawNodes() {
   const nodeLayer = document.getElementById('nodeLayer');
   const labelLayer = document.getElementById('labelLayer');
   nodeLayer.innerHTML = '';
-
   appState.model.nodes.forEach((node) => {
     const p = isoToScreen(node.position);
-    const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-    group.setAttribute('transform', `translate(${p.x} ${p.y})`);
-    group.setAttribute('class', `node ${appState.ui.selected?.kind === 'node' && appState.ui.selected.id === node.id ? 'selected' : ''}`);
-    group.dataset.nodeId = node.id;
-    group.innerHTML = nodeSymbol(node, connectedVectorForNode(node.id));
-    nodeLayer.appendChild(group);
+    const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    g.setAttribute('transform', `translate(${p.x} ${p.y})`);
+    g.setAttribute('class', `node ${appState.ui.selected?.kind === 'node' && appState.ui.selected.id === node.id ? 'selected' : ''}`);
+    g.dataset.nodeId = node.id;
+    g.innerHTML = nodeSymbol(node, connectedVectorForNode(node.id));
+    nodeLayer.appendChild(g);
 
-    if (node.type !== 'elbow' && node.type !== 'junction') {
-      const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      txt.setAttribute('x', `${p.x + 8}`);
-      txt.setAttribute('y', `${p.y + 16}`);
-      txt.setAttribute('class', 'node-label');
-      txt.textContent = node.label;
-      labelLayer.appendChild(txt);
+    if (!['elbow', 'junction'].includes(node.type)) {
+      const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      t.setAttribute('x', `${p.x + 8}`);
+      t.setAttribute('y', `${p.y + 15}`);
+      t.setAttribute('class', 'node-label');
+      t.textContent = node.label;
+      labelLayer.appendChild(t);
     }
   });
 }
@@ -253,13 +244,13 @@ function drawPreview() {
   if (appState.ui.tool !== 'straightDuct' || !appState.ui.drawStartNodeId || !appState.ui.previewPoint) {
     return;
   }
-  const startNode = appState.model.nodes.find((node) => node.id === appState.ui.drawStartNodeId);
-  if (!startNode) {
+  const start = appState.model.nodes.find((node) => node.id === appState.ui.drawStartNodeId);
+  if (!start) {
     return;
   }
-  const startScreen = isoToScreen(startNode.position);
+  const s = isoToScreen(start.position);
   const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-  p.setAttribute('d', `M ${startScreen.x} ${startScreen.y} L ${appState.ui.previewPoint.x} ${appState.ui.previewPoint.y}`);
+  p.setAttribute('d', `M ${s.x} ${s.y} L ${appState.ui.previewPoint.x} ${appState.ui.previewPoint.y}`);
   p.setAttribute('class', 'duct-preview');
   layer.appendChild(p);
 }
@@ -273,7 +264,9 @@ function renderCanvas() {
 }
 
 function renderToolButtons() {
-  document.querySelectorAll('.tool').forEach((button) => button.classList.toggle('active', button.dataset.tool === appState.ui.tool));
+  document.querySelectorAll('.tool').forEach((button) => {
+    button.classList.toggle('active', button.dataset.tool === appState.ui.tool || (button.dataset.tool === 'select' && appState.ui.panMode));
+  });
 }
 
 function edgeLengthFromGeometry(edge) {
@@ -289,26 +282,25 @@ function edgeLengthFromGeometry(edge) {
 }
 
 function ensureEdgeEngineering(edge) {
-  const computedLen = edgeLengthFromGeometry(edge);
+  const len = edgeLengthFromGeometry(edge);
   if (!edge.props.lengthFt || edge.props.lengthMode !== 'manual') {
-    edge.props.lengthFt = computedLen;
+    edge.props.lengthFt = len;
     edge.props.lengthMode = 'geometry';
   }
 }
 
 function calcModelFromGraph() {
-  const list = [];
-
-  const byBranchEdges = {};
+  const components = [];
+  const byBranch = {};
   appState.model.edges.forEach((edge) => {
-    if (!byBranchEdges[edge.branchId]) {
-      byBranchEdges[edge.branchId] = [];
+    if (!byBranch[edge.branchId]) {
+      byBranch[edge.branchId] = [];
     }
-    byBranchEdges[edge.branchId].push(edge);
+    byBranch[edge.branchId].push(edge);
   });
 
-  Object.keys(byBranchEdges).forEach((branchId) => {
-    const edges = byBranchEdges[branchId].sort((a, b) => n(a.order) - n(b.order));
+  Object.keys(byBranch).forEach((branchId) => {
+    const edges = byBranch[branchId].sort((a, b) => n(a.order) - n(b.order));
     const emittedNodes = new Set();
 
     edges.forEach((edge, idx) => {
@@ -316,51 +308,61 @@ function calcModelFromGraph() {
       const fromNode = appState.model.nodes.find((node) => node.id === edge.from);
       const toNode = appState.model.nodes.find((node) => node.id === edge.to);
 
-      if (fromNode && fromNode.type !== 'node' && !emittedNodes.has(fromNode.id)) {
-        list.push({
-          id: fromNode.id,
-          type: fromNode.type,
-          label: fromNode.label,
-          branchId,
-          order: idx * 3 + 1,
-          props: { ...fromNode.props },
-          overrides: { ...(fromNode.overrides || {}) }
-        });
+      if (fromNode && !emittedNodes.has(fromNode.id)) {
+        components.push({ id: fromNode.id, type: fromNode.type, label: fromNode.label, branchId, order: idx * 3 + 1, props: { ...fromNode.props }, overrides: { ...fromNode.overrides } });
         emittedNodes.add(fromNode.id);
       }
 
-      list.push({
-        id: edge.id,
-        type: 'straightDuct',
-        label: edge.label,
-        branchId,
-        order: idx * 3 + 2,
-        props: { ...edge.props },
-        overrides: { ...(edge.overrides || {}) }
-      });
+      components.push({ id: edge.id, type: 'straightDuct', label: edge.label, branchId, order: idx * 3 + 2, props: { ...edge.props }, overrides: { ...edge.overrides } });
 
-      if (toNode && toNode.type !== 'node' && !emittedNodes.has(toNode.id)) {
-        list.push({
-          id: toNode.id,
-          type: toNode.type,
-          label: toNode.label,
-          branchId,
-          order: idx * 3 + 3,
-          props: { ...toNode.props },
-          overrides: { ...(toNode.overrides || {}) }
-        });
+      if (toNode && !emittedNodes.has(toNode.id)) {
+        components.push({ id: toNode.id, type: toNode.type, label: toNode.label, branchId, order: idx * 3 + 3, props: { ...toNode.props }, overrides: { ...toNode.overrides } });
         emittedNodes.add(toNode.id);
       }
     });
   });
 
-  return { components: list };
+  return { components };
+}
+
+function renderSpreadsheetRows() {
+  const rows = appState.results?.worksheetRows || [];
+  const metrics = [
+    { key: 'componentName', label: 'Component' },
+    { key: 'type', label: 'Type' },
+    { key: 'flow', label: 'Q (cfm)', digits: 1, band: 'yellow' },
+    { key: 'size', label: 'Duct Size', band: 'yellow' },
+    { key: 'eqD', label: 'Eq Diameter (in)', digits: 2, band: 'yellow' },
+    { key: 'velocity', label: 'Velocity (fpm)', digits: 1, band: 'green' },
+    { key: 'vp', label: 'VP_d (in.wg)', digits: 4, band: 'green' },
+    { key: 'coef', label: 'Loss Coef (F/K)', digits: 4, band: 'orange' },
+    { key: 'loss', label: 'Component Loss (in.wg)', digits: 4, band: 'orange' },
+    { key: 'cumulativeSp', label: 'Cumulative SP (in.wg)', digits: 4, band: 'orange' },
+    { key: 'status', label: 'Value Status', band: 'pink' }
+  ];
+
+  const head = document.getElementById('sheetHead');
+  const body = document.getElementById('sheetBody');
+
+  head.innerHTML = `<tr><th class="param-col">ACGIH Velocity Pressure Worksheet Style Fields</th>${rows.map((row) => `<th>${row.id}<br/><small>${row.branchId}</small></th>`).join('')}</tr>`;
+
+  body.innerHTML = metrics.map((metric) => {
+    const cells = rows.map((row) => {
+      let value = row[metric.key];
+      if (metric.key === 'type') {
+        value = window.Calc.componentTypeLabel(row.type);
+      } else if (typeof value === 'number') {
+        value = format(value, metric.digits ?? 3);
+      }
+      return `<td>${value ?? '—'}</td>`;
+    }).join('');
+    return `<tr class="sheet-row ${metric.band || ''}"><th class="param-col">${metric.label}</th>${cells}</tr>`;
+  }).join('');
 }
 
 function calcAndRender() {
   const calcModel = calcModelFromGraph();
   appState.results = window.Calc.computeSystem(calcModel, appState.settings);
-  document.getElementById('chartBody').innerHTML = window.Calc.formatChartRows(appState.results);
 
   document.getElementById('resultSummary').innerHTML = `
     <div class="result-card"><h4>Governing Leg</h4><p>${appState.results.governingLegId}</p></div>
@@ -369,29 +371,28 @@ function calcAndRender() {
     <div class="result-card"><h4>Total Design Flow</h4><p>${format(appState.results.totalFlowDesign, 1)} cfm</p></div>
   `;
 
-  if (appState.results.operatingPoint) {
-    document.getElementById('fanSummary').textContent = `Fan OP ${format(appState.results.operatingPoint.q, 1)} cfm @ ${format(appState.results.operatingPoint.sp, 3)} in.wg`;
-  } else {
-    document.getElementById('fanSummary').textContent = `Fan summary: Governing SP ${format(appState.results.governingSp)} in.wg`;
-  }
+  const fanSummary = document.getElementById('fanSummary');
+  fanSummary.textContent = appState.results.operatingPoint
+    ? `Fan OP ${format(appState.results.operatingPoint.q, 1)} cfm @ ${format(appState.results.operatingPoint.sp, 3)} in.wg`
+    : `Fan summary: Governing SP ${format(appState.results.governingSp)} in.wg`;
 
+  renderSpreadsheetRows();
   renderPropertyPanel();
   renderCanvas();
-}
-
-function statusBadge(status) {
-  const css = status === 'manual override' ? 'override' : status === 'calculated' ? 'calc' : 'default';
-  return `<span class="badge ${css}">${status}</span>`;
 }
 
 function selectedEntity() {
   if (!appState.ui.selected) {
     return null;
   }
-  if (appState.ui.selected.kind === 'node') {
-    return appState.model.nodes.find((node) => node.id === appState.ui.selected.id) || null;
-  }
-  return appState.model.edges.find((edge) => edge.id === appState.ui.selected.id) || null;
+  return appState.ui.selected.kind === 'node'
+    ? appState.model.nodes.find((node) => node.id === appState.ui.selected.id) || null
+    : appState.model.edges.find((edge) => edge.id === appState.ui.selected.id) || null;
+}
+
+function statusBadge(status) {
+  const css = status === 'manual override' ? 'override' : status === 'calculated' ? 'calc' : 'default';
+  return `<span class="badge ${css}">${status}</span>`;
 }
 
 function renderPropertyPanel() {
@@ -401,98 +402,89 @@ function renderPropertyPanel() {
 
   if (!selected) {
     meta.textContent = 'No item selected.';
-    form.innerHTML = '<p>Select a duct line or node to edit engineering properties.</p>';
+    form.innerHTML = '<p>Select a duct line or fitting node.</p>';
     return;
   }
 
   if (appState.ui.selected.kind === 'edge') {
-    const result = appState.results?.worksheetRows.find((row) => row.id === selected.id)?.details;
+    const edge = selected;
     const lock = !appState.settings.advancedUnlocked;
-    meta.innerHTML = `<strong>${selected.label}</strong><br/>Duct run • Branch ${selected.branchId}`;
+    const details = appState.results?.worksheetRows.find((row) => row.id === edge.id)?.details;
+
+    meta.innerHTML = `<strong>${edge.label}</strong><br/>Duct Run • Branch ${edge.branchId}`;
     form.innerHTML = `
-      <div class="property-grid" data-kind="edge" data-id="${selected.id}">
-        <label>Label<input data-field="label" value="${selected.label}" /></label>
-        <label>Branch ID<input data-field="branchId" value="${selected.branchId}" /></label>
-        <label>Order<input type="number" data-field="order" value="${selected.order}" /></label>
-        <label>Flow (cfm)<input type="number" data-field="cfm" value="${selected.props.cfm}" /></label>
+      <div class="property-grid" data-kind="edge" data-id="${edge.id}">
+        <label>Label<input data-field="label" value="${edge.label}" /></label>
+        <label>Branch ID<input data-field="branchId" value="${edge.branchId}" /></label>
+        <label>Order<input type="number" data-field="order" value="${edge.order}" /></label>
+        <label>Flow (cfm)<input type="number" data-field="cfm" value="${edge.props.cfm}" /></label>
         <label>Shape
           <select data-field="shape">
-            <option value="round" ${selected.props.shape === 'round' ? 'selected' : ''}>Round</option>
-            <option value="rectangular" ${selected.props.shape === 'rectangular' ? 'selected' : ''}>Rectangular</option>
+            <option value="round" ${edge.props.shape === 'round' ? 'selected' : ''}>Round</option>
+            <option value="rectangular" ${edge.props.shape === 'rectangular' ? 'selected' : ''}>Rectangular</option>
           </select>
         </label>
-        <label>Diameter (in)<input type="number" data-field="diameterIn" value="${selected.props.diameterIn}" /></label>
-        <label>Width (in)<input type="number" data-field="widthIn" value="${selected.props.widthIn}" /></label>
-        <label>Height (in)<input type="number" data-field="heightIn" value="${selected.props.heightIn}" /></label>
-        <label>Length (ft)<input type="number" step="0.01" data-field="lengthFt" value="${format(selected.props.lengthFt, 2)}" /></label>
-        <label>Start Elevation<input type="number" step="1" data-field="startElevation" value="${selected.props.startElevation ?? 0}" /></label>
-        <label>End Elevation<input type="number" step="1" data-field="endElevation" value="${selected.props.endElevation ?? 0}" /></label>
+        <label>Diameter (in)<input type="number" data-field="diameterIn" value="${edge.props.diameterIn}" /></label>
+        <label>Width (in)<input type="number" data-field="widthIn" value="${edge.props.widthIn}" /></label>
+        <label>Height (in)<input type="number" data-field="heightIn" value="${edge.props.heightIn}" /></label>
+        <label>Length (ft)<input type="number" step="0.01" data-field="lengthFt" value="${format(edge.props.lengthFt, 2)}" /></label>
+        <label>Start Elevation<input type="number" step="1" data-field="startElevation" value="${edge.props.startElevation ?? 0}" /></label>
+        <label>End Elevation<input type="number" step="1" data-field="endElevation" value="${edge.props.endElevation ?? 0}" /></label>
         <label>Material
           <select data-field="material">
-            ${Object.entries(window.Calc.Standards.straightDuct.materials).map(([k,v])=>`<option value="${k}" ${selected.props.material===k?'selected':''}>${v.label}</option>`).join('')}
+            ${Object.entries(window.Calc.Standards.straightDuct.materials).map(([k, v]) => `<option value="${k}" ${edge.props.material === k ? 'selected' : ''}>${v.label}</option>`).join('')}
           </select>
         </label>
-        <label>Enable a/b/c Override<input type="checkbox" data-field="enableABC" ${selected.overrides.enableABC ? 'checked' : ''} ${lock ? 'disabled' : ''} /></label>
-        <label>a<input type="number" step="0.0001" data-field="a" value="${selected.overrides.a ?? ''}" ${lock ? 'disabled' : ''}/></label>
-        <label>b<input type="number" step="0.001" data-field="b" value="${selected.overrides.b ?? ''}" ${lock ? 'disabled' : ''}/></label>
-        <label>c<input type="number" step="0.001" data-field="c" value="${selected.overrides.c ?? ''}" ${lock ? 'disabled' : ''}/></label>
+        <label>Enable a/b/c Override<input type="checkbox" data-field="enableABC" ${edge.overrides.enableABC ? 'checked' : ''} ${lock ? 'disabled' : ''} /></label>
+        <label>a<input type="number" step="0.0001" data-field="a" value="${edge.overrides.a ?? ''}" ${lock ? 'disabled' : ''}/></label>
+        <label>b<input type="number" step="0.001" data-field="b" value="${edge.overrides.b ?? ''}" ${lock ? 'disabled' : ''}/></label>
+        <label>c<input type="number" step="0.001" data-field="c" value="${edge.overrides.c ?? ''}" ${lock ? 'disabled' : ''}/></label>
       </div>
-      <div class="selection-meta">${statusBadge(result?.status || 'standards default')} ${result ? `V=${format(result.velocity,1)} VP=${format(result.vp,4)} F'=${format(result.fdPrime,6)} F=${format(result.fd,4)} h_d=${format(result.loss,4)}` : ''}</div>
+      <div class="selection-meta">${statusBadge(details?.status || 'standards default')} ${details ? `V=${format(details.velocity,1)} VP=${format(details.vp,4)} F'=${format(details.fdPrime,6)} F=${format(details.fd,4)} h_d=${format(details.loss,4)}` : ''}</div>
     `;
     return;
   }
 
   const node = selected;
-  const result = appState.results?.worksheetRows.find((row) => row.id === node.id)?.details;
   const lock = !appState.settings.advancedUnlocked;
+  const details = appState.results?.worksheetRows.find((row) => row.id === node.id)?.details;
   meta.innerHTML = `<strong>${node.label}</strong><br/>${window.Calc.componentTypeLabel(node.type)} • Branch ${node.branchId}`;
 
   let specific = '';
   if (node.type === 'hood') {
     specific = `
-      <label>Hood Type
-        <select data-field="hoodType">${Object.keys(window.Calc.Standards.hood.types).map((k)=>`<option value="${k}" ${node.props.hoodType===k?'selected':''}>${k}</option>`).join('')}</select>
-      </label>
+      <label>Hood Type<select data-field="hoodType">${Object.keys(window.Calc.Standards.hood.types).map((k) => `<option value="${k}" ${node.props.hoodType === k ? 'selected' : ''}>${k}</option>`).join('')}</select></label>
       <label>Opening Area (ft²)<input type="number" step="0.01" data-field="openingAreaFt2" value="${node.props.openingAreaFt2}" /></label>
       <label>Hood Elevation<input type="number" step="1" data-field="z" value="${node.position.z}" /></label>
       <label>Enable F_h Override<input type="checkbox" data-field="enableFh" ${node.overrides.enableFh ? 'checked' : ''} ${lock ? 'disabled' : ''}/></label>
       <label>F_h override<input type="number" step="0.01" data-field="fh" value="${node.overrides.fh ?? ''}" ${lock ? 'disabled' : ''}/></label>
-      <div class="selection-meta">${statusBadge(result?.status || 'standards default')} ${result ? `V_face=${format(result.faceVelocity,1)} VP_d=${format(result.vp,4)} h_h=${format(result.hH,4)} SP_h=${format(result.spH,4)}` : ''}</div>
+      <div class="selection-meta">${statusBadge(details?.status || 'standards default')} ${details ? `VP_d=${format(details.vp,4)} h_h=${format(details.hH,4)} SP_h=${format(details.spH,4)}` : ''}</div>
     `;
   } else if (node.type === 'elbow') {
     specific = `
       <label>Angle (deg)<input type="number" data-field="angleDeg" value="${node.props.angleDeg}" /></label>
       <label>R/D<input type="number" step="0.01" data-field="rd" value="${node.props.rd}" /></label>
-      <label>Elbow Type
-        <select data-field="elbowType">${['stamped','fivePiece','fourPiece','threePiece','mitered','miteredTurningVanes','flatback'].map((k)=>`<option value="${k}" ${node.props.elbowType===k?'selected':''}>${k}</option>`).join('')}</select>
-      </label>
+      <label>Elbow Type<select data-field="elbowType">${['stamped','fivePiece','fourPiece','threePiece','mitered','miteredTurningVanes','flatback'].map((k) => `<option value="${k}" ${node.props.elbowType === k ? 'selected' : ''}>${k}</option>`).join('')}</select></label>
       <label>Enable F_el Override<input type="checkbox" data-field="enableFel" ${node.overrides.enableFel ? 'checked' : ''} ${lock ? 'disabled' : ''}/></label>
       <label>F_el override<input type="number" step="0.01" data-field="fel" value="${node.overrides.fel ?? ''}" ${lock ? 'disabled' : ''}/></label>
-      <div class="selection-meta">${statusBadge(result?.status || 'standards default')} ${result ? `eq90=${format(result.equivalent90,3)} h_el=${format(result.loss,4)} matched=${result.matched || '-'}` : ''}</div>
+      <div class="selection-meta">${statusBadge(details?.status || 'standards default')} ${details ? `eq90=${format(details.equivalent90,3)} h_el=${format(details.loss,4)}` : ''}</div>
     `;
   } else if (node.type === 'junction') {
     specific = `
       <label>Branch Angle (deg)<input type="number" data-field="branchAngleDeg" value="${node.props.branchAngleDeg}" /></label>
       <label>Enable F_en Override<input type="checkbox" data-field="enableFen" ${node.overrides.enableFen ? 'checked' : ''} ${lock ? 'disabled' : ''}/></label>
       <label>F_en override<input type="number" step="0.01" data-field="fen" value="${node.overrides.fen ?? ''}" ${lock ? 'disabled' : ''}/></label>
-      <div class="selection-meta">${statusBadge(result?.status || 'standards default')} ${result ? `h_en=${format(result.loss,4)} matched angle=${result.matchedAngle || '-'}` : ''}</div>
+      <div class="selection-meta">${statusBadge(details?.status || 'standards default')} ${details ? `h_en=${format(details.loss,4)} matched=${details.matchedAngle || '-'}` : ''}</div>
     `;
   } else if (node.type === 'fan') {
     const points = (node.props.curvePoints || []).map((p) => `${p.q}:${p.sp}`).join(', ');
-    specific = `
-      <label>Fan Curve Points (q:sp)<textarea rows="3" data-field="curvePointsText">${points}</textarea></label>
-      <div class="selection-meta">Operating point: ${appState.results?.operatingPoint ? `${format(appState.results.operatingPoint.q,1)} cfm @ ${format(appState.results.operatingPoint.sp,3)} in.wg` : 'Not solved'}</div>
-    `;
+    specific = `<label>Fan Curve (q:sp)<textarea rows="3" data-field="curvePointsText">${points}</textarea></label>`;
   } else if (node.type === 'filter') {
-    specific = `
-      <label>Filter ΔSP override<input type="number" step="0.01" data-field="dropInWg" value="${node.overrides.dropInWg ?? ''}" ${lock ? 'disabled' : ''}/></label>
-      <div class="selection-meta">${statusBadge(result?.status || 'standards default')} ${result ? `h_filter=${format(result.loss,4)}` : ''}</div>
-    `;
+    specific = `<label>Filter ΔSP override<input type="number" step="0.01" data-field="dropInWg" value="${node.overrides.dropInWg ?? ''}" ${lock ? 'disabled' : ''}/></label>`;
   } else if (node.type === 'blastGate') {
     specific = `
       <label>Enable K Override<input type="checkbox" data-field="enableK" ${node.overrides.enableK ? 'checked' : ''} ${lock ? 'disabled' : ''}/></label>
       <label>K override<input type="number" step="0.01" data-field="k" value="${node.overrides.k ?? ''}" ${lock ? 'disabled' : ''}/></label>
-      <div class="selection-meta">${statusBadge(result?.status || 'standards default')} ${result ? `h_gate=${format(result.loss,4)}` : ''}</div>
     `;
   }
 
@@ -527,66 +519,62 @@ function syncEdgeElevations(edge) {
 }
 
 function applyPropertyEdit(target) {
-  const selected = appState.ui.selected;
-  if (!selected) {
+  if (!appState.ui.selected) {
     return;
   }
 
-  if (selected.kind === 'edge') {
-    const edge = appState.model.edges.find((item) => item.id === selected.id);
-    if (!edge) {
+  if (appState.ui.selected.kind === 'edge') {
+    const edge = appState.model.edges.find((item) => item.id === appState.ui.selected.id);
+    if (!edge || !target.dataset.field) {
       return;
     }
-    const field = target.dataset.field;
-    if (!field) {
-      return;
-    }
-    if (field === 'label') {
+    const f = target.dataset.field;
+    if (f === 'label') {
       edge.label = target.value;
-    } else if (field === 'branchId') {
+    } else if (f === 'branchId') {
       edge.branchId = target.value || 'MAIN';
-    } else if (field === 'order') {
+    } else if (f === 'order') {
       edge.order = n(target.value, 1);
-    } else if (field === 'shape' || field === 'material') {
-      edge.props[field] = target.value;
-    } else if (['enableABC'].includes(field)) {
-      edge.overrides[field] = target.checked;
-    } else if (['a', 'b', 'c'].includes(field)) {
-      edge.overrides[field] = target.value === '' ? null : n(target.value);
-    } else if (field === 'lengthFt') {
+    } else if (['shape', 'material'].includes(f)) {
+      edge.props[f] = target.value;
+    } else if (f === 'enableABC') {
+      edge.overrides.enableABC = target.checked;
+    } else if (['a', 'b', 'c'].includes(f)) {
+      edge.overrides[f] = target.value === '' ? null : n(target.value);
+    } else if (f === 'lengthFt') {
       edge.props.lengthFt = n(target.value, edge.props.lengthFt);
       edge.props.lengthMode = 'manual';
-    } else if (['startElevation', 'endElevation'].includes(field)) {
-      edge.props[field] = n(target.value, 0);
+    } else if (['startElevation', 'endElevation'].includes(f)) {
+      edge.props[f] = n(target.value, 0);
       syncEdgeElevations(edge);
-    } else if (['cfm', 'diameterIn', 'widthIn', 'heightIn'].includes(field)) {
-      edge.props[field] = n(target.value, 0);
+      if (edge.props.lengthMode !== 'manual') {
+        ensureEdgeEngineering(edge);
+      }
+    } else if (['cfm', 'diameterIn', 'widthIn', 'heightIn'].includes(f)) {
+      edge.props[f] = n(target.value, 0);
     }
   } else {
-    const node = appState.model.nodes.find((item) => item.id === selected.id);
-    if (!node) {
+    const node = appState.model.nodes.find((item) => item.id === appState.ui.selected.id);
+    if (!node || !target.dataset.field) {
       return;
     }
-    const field = target.dataset.field;
-    if (!field) {
-      return;
-    }
-    if (field === 'label') {
+    const f = target.dataset.field;
+    if (f === 'label') {
       node.label = target.value;
-    } else if (field === 'branchId') {
+    } else if (f === 'branchId') {
       node.branchId = target.value || 'MAIN';
-    } else if (field === 'shape' || field === 'hoodType' || field === 'elbowType') {
-      node.props[field] = target.value;
-    } else if (field === 'curvePointsText') {
+    } else if (['shape', 'hoodType', 'elbowType'].includes(f)) {
+      node.props[f] = target.value;
+    } else if (f === 'curvePointsText') {
       node.props.curvePoints = target.value.split(',').map((pair) => {
         const [q, sp] = pair.split(':').map((item) => Number(item.trim()));
         return { q, sp };
-      }).filter((item) => Number.isFinite(item.q) && Number.isFinite(item.sp));
-    } else if (['enableFh', 'enableFel', 'enableFen', 'enableK'].includes(field)) {
-      node.overrides[field] = target.checked;
-    } else if (['fh', 'fel', 'fen', 'k', 'dropInWg'].includes(field)) {
-      node.overrides[field] = target.value === '' ? null : n(target.value);
-    } else if (field === 'z') {
+      }).filter((pair) => Number.isFinite(pair.q) && Number.isFinite(pair.sp));
+    } else if (['enableFh', 'enableFel', 'enableFen', 'enableK'].includes(f)) {
+      node.overrides[f] = target.checked;
+    } else if (['fh', 'fel', 'fen', 'k', 'dropInWg'].includes(f)) {
+      node.overrides[f] = target.value === '' ? null : n(target.value);
+    } else if (f === 'z') {
       node.position.z = n(target.value, node.position.z);
       appState.model.edges.forEach((edge) => {
         if (edge.from === node.id) {
@@ -596,11 +584,10 @@ function applyPropertyEdit(target) {
           edge.props.endElevation = node.position.z;
         }
       });
-    } else if (['cfm', 'diameterIn', 'widthIn', 'heightIn', 'openingAreaFt2', 'angleDeg', 'rd', 'wd', 'branchAngleDeg'].includes(field)) {
-      node.props[field] = n(target.value, 0);
+    } else if (['cfm', 'diameterIn', 'widthIn', 'heightIn', 'openingAreaFt2', 'angleDeg', 'rd', 'wd', 'branchAngleDeg'].includes(f)) {
+      node.props[f] = n(target.value, 0);
     }
   }
-
   calcAndRender();
 }
 
@@ -611,7 +598,22 @@ function createNode(type, isoPos) {
     label: `${window.Calc.componentTypeLabel(type)} ${appState.model.nodes.length + 1}`,
     branchId: 'B1',
     position: { ...isoPos },
-    props: { shape: 'round', diameterIn: 12, widthIn: 18, heightIn: 10, cfm: 1200, hoodType: 'plainOpening', openingAreaFt2: 4, geometry: 'round', elbowType: 'stamped', angleDeg: 90, rd: 1, wd: 1, branchAngleDeg: 45, curvePoints: [{ q: 2400, sp: 6.6 }, { q: 3200, sp: 5.3 }] },
+    props: {
+      shape: 'round',
+      diameterIn: 12,
+      widthIn: 18,
+      heightIn: 10,
+      cfm: 1200,
+      hoodType: 'plainOpening',
+      openingAreaFt2: 4,
+      geometry: 'round',
+      elbowType: 'stamped',
+      angleDeg: 90,
+      rd: 1,
+      wd: 1,
+      branchAngleDeg: 45,
+      curvePoints: [{ q: 2400, sp: 6.6 }, { q: 3200, sp: 5.3 }]
+    },
     overrides: { enableFh: false, enableFel: false, enableFen: false, enableK: false, fh: null, fel: null, fen: null, k: null, dropInWg: null }
   };
   appState.model.nodes.push(node);
@@ -619,30 +621,23 @@ function createNode(type, isoPos) {
 }
 
 function createDuctEdge(fromNodeId, toNodeId) {
-  const fromNode = appState.model.nodes.find((node) => node.id === fromNodeId);
-  const toNode = appState.model.nodes.find((node) => node.id === toNodeId);
-  if (!fromNode || !toNode) {
-    return;
+  const from = appState.model.nodes.find((node) => node.id === fromNodeId);
+  const to = appState.model.nodes.find((node) => node.id === toNodeId);
+  if (!from || !to) {
+    return null;
   }
   const edge = {
     id: idFor('D', appState.model.edges),
     type: 'straightDuct',
     label: `Run ${appState.model.edges.length + 1}`,
-    branchId: fromNode.branchId || 'B1',
-    order: appState.model.edges.filter((item) => item.branchId === (fromNode.branchId || 'B1')).length + 1,
+    branchId: from.branchId || 'B1',
+    order: appState.model.edges.filter((item) => item.branchId === (from.branchId || 'B1')).length + 1,
     from: fromNodeId,
     to: toNodeId,
     props: {
-      shape: 'round',
-      diameterIn: 12,
-      widthIn: 18,
-      heightIn: 10,
-      cfm: fromNode.props.cfm || 1200,
-      material: 'otherSheetMetalPlastic',
-      startElevation: fromNode.position.z,
-      endElevation: toNode.position.z,
-      lengthFt: 0,
-      lengthMode: 'geometry'
+      shape: 'round', diameterIn: 12, widthIn: 18, heightIn: 10, cfm: from.props.cfm || 1200,
+      material: 'otherSheetMetalPlastic', startElevation: from.position.z, endElevation: to.position.z,
+      lengthFt: 0, lengthMode: 'geometry'
     },
     overrides: { enableABC: false, a: null, b: null, c: null }
   };
@@ -652,13 +647,13 @@ function createDuctEdge(fromNodeId, toNodeId) {
 }
 
 function startOrFinishDuctDraw(event) {
-  const point = screenPtFromEvent(event);
-  const nodeHit = nearestNode(point, 14);
+  const pt = screenPtFromEvent(event);
+  const nodeHit = nearestNode(pt, 14);
 
   if (!appState.ui.drawStartNodeId) {
-    const node = nodeHit || createNode('elbow', screenToIso(point.x, point.y, 0));
-    appState.ui.drawStartNodeId = node.id;
-    appState.ui.selected = { kind: 'node', id: node.id };
+    const start = nodeHit || createNode('elbow', screenToIso(pt.x, pt.y, 0));
+    appState.ui.drawStartNodeId = start.id;
+    appState.ui.selected = { kind: 'node', id: start.id };
     return;
   }
 
@@ -669,16 +664,41 @@ function startOrFinishDuctDraw(event) {
   }
 
   const startScreen = isoToScreen(startNode.position);
-  const snappedScreen = constrainToCadDirections(startScreen, point);
+  const snapped = constrainToCadDirections(startScreen, pt);
   let endNode = nodeHit;
 
   if (!endNode || endNode.id === startNode.id) {
-    endNode = createNode('elbow', screenToIso(snappedScreen.x, snappedScreen.y, startNode.position.z));
+    endNode = createNode('elbow', screenToIso(snapped.x, snapped.y, startNode.position.z));
   }
 
   const edge = createDuctEdge(startNode.id, endNode.id);
-  appState.ui.selected = edge ? { kind: 'edge', id: edge.id } : appState.ui.selected;
+  if (edge) {
+    appState.ui.selected = { kind: 'edge', id: edge.id };
+  }
   appState.ui.drawStartNodeId = endNode.id;
+}
+
+function deleteSelected() {
+  if (!appState.ui.selected) {
+    return;
+  }
+
+  if (appState.ui.selected.kind === 'edge') {
+    appState.model.edges = appState.model.edges.filter((edge) => edge.id !== appState.ui.selected.id);
+    appState.ui.selected = null;
+    calcAndRender();
+    return;
+  }
+
+  const nodeId = appState.ui.selected.id;
+  appState.model.nodes = appState.model.nodes.filter((node) => node.id !== nodeId);
+  appState.model.edges = appState.model.edges.filter((edge) => edge.from !== nodeId && edge.to !== nodeId);
+  appState.ui.selected = null;
+  if (appState.ui.drawStartNodeId === nodeId) {
+    appState.ui.drawStartNodeId = null;
+    appState.ui.previewPoint = null;
+  }
+  calcAndRender();
 }
 
 function onCanvasClick(event) {
@@ -699,63 +719,60 @@ function onCanvasClick(event) {
     return;
   }
 
-  const point = screenPtFromEvent(event);
-  const iso = screenToIso(point.x, point.y, 0);
-
   if (appState.ui.tool === 'straightDuct') {
     startOrFinishDuctDraw(event);
-  } else if (appState.ui.tool !== 'select') {
-    const node = createNode(appState.ui.tool, iso);
-    appState.ui.selected = { kind: 'node', id: node.id };
-    appState.ui.drawStartNodeId = null;
-  } else {
-    appState.ui.selected = null;
+    calcAndRender();
+    return;
   }
 
+  if (appState.ui.tool !== 'select') {
+    const pt = screenPtFromEvent(event);
+    const node = createNode(appState.ui.tool, screenToIso(pt.x, pt.y, 0));
+    appState.ui.selected = { kind: 'node', id: node.id };
+    appState.ui.drawStartNodeId = null;
+    calcAndRender();
+    return;
+  }
+
+  appState.ui.selected = null;
   calcAndRender();
 }
 
 function exportDxf() {
-  const lines = [];
-  lines.push('0','SECTION','2','HEADER','0','ENDSEC');
-  lines.push('0','SECTION','2','ENTITIES');
+  const lines = ['0','SECTION','2','HEADER','0','ENDSEC','0','SECTION','2','ENTITIES'];
 
   appState.model.edges.forEach((edge) => {
-    const aNode = appState.model.nodes.find((node) => node.id === edge.from);
-    const bNode = appState.model.nodes.find((node) => node.id === edge.to);
-    if (!aNode || !bNode) {
+    const a = appState.model.nodes.find((node) => node.id === edge.from);
+    const b = appState.model.nodes.find((node) => node.id === edge.to);
+    if (!a || !b) {
       return;
     }
     lines.push('0','LINE','8','DUCT_CENTERLINE',
-      '10', String(aNode.position.x), '20', String(aNode.position.y), '30', String(aNode.position.z),
-      '11', String(bNode.position.x), '21', String(bNode.position.y), '31', String(bNode.position.z));
+      '10', String(a.position.x), '20', String(a.position.y), '30', String(a.position.z),
+      '11', String(b.position.x), '21', String(b.position.y), '31', String(b.position.z));
 
-    const midX = (aNode.position.x + bNode.position.x) / 2;
-    const midY = (aNode.position.y + bNode.position.y) / 2;
-    const midZ = (aNode.position.z + bNode.position.z) / 2;
+    const midX = (a.position.x + b.position.x) / 2;
+    const midY = (a.position.y + b.position.y) / 2;
+    const midZ = (a.position.z + b.position.z) / 2;
     lines.push('0','TEXT','8','LABELS','10',String(midX),'20',String(midY),'30',String(midZ),'40','2.5','1',edge.label);
   });
 
   appState.model.nodes.forEach((node) => {
     if (node.type === 'hood') {
       const p = node.position;
-      const points = [
-        [p.x - 10, p.y - 3, p.z], [p.x + 10, p.y - 3, p.z], [p.x + 6, p.y + 5, p.z], [p.x - 6, p.y + 5, p.z], [p.x - 10, p.y - 3, p.z]
-      ];
-      for (let i = 0; i < points.length - 1; i += 1) {
-        const a = points[i];
-        const b = points[i + 1];
+      const pts = [[p.x - 10, p.y - 3, p.z], [p.x + 10, p.y - 3, p.z], [p.x + 6, p.y + 5, p.z], [p.x - 6, p.y + 5, p.z], [p.x - 10, p.y - 3, p.z]];
+      for (let i = 0; i < pts.length - 1; i += 1) {
+        const a = pts[i];
+        const b = pts[i + 1];
         lines.push('0','LINE','8','HOODS','10',String(a[0]),'20',String(a[1]),'30',String(a[2]),'11',String(b[0]),'21',String(b[1]),'31',String(b[2]));
       }
     }
-
     if (['fan','filter','blastGate','elbow','junction'].includes(node.type)) {
       lines.push('0','POINT','8',`NODE_${node.type.toUpperCase()}`,'10',String(node.position.x),'20',String(node.position.y),'30',String(node.position.z));
     }
   });
 
   lines.push('0','ENDSEC','0','EOF');
-
   const blob = new Blob([`${lines.join('\n')}\n`], { type: 'application/dxf' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -768,7 +785,7 @@ function exportDxf() {
 svg.addEventListener('click', onCanvasClick);
 
 svg.addEventListener('mousedown', (event) => {
-  if (event.shiftKey) {
+  if (event.shiftKey || appState.ui.panMode) {
     appState.ui.isPanning = true;
     appState.ui.dragOffset = { x: event.clientX - appState.ui.panX, y: event.clientY - appState.ui.panY };
     return;
@@ -779,25 +796,14 @@ svg.addEventListener('mousedown', (event) => {
   }
 
   const nodeEl = event.target.closest('.node');
-  const edgeEl = event.target.closest('.duct-line');
   if (nodeEl) {
     appState.ui.dragRef = { kind: 'node', id: nodeEl.dataset.nodeId };
-  } else if (edgeEl) {
-    appState.ui.dragRef = { kind: 'edge', id: edgeEl.dataset.edgeId };
-  }
-
-  if (appState.ui.dragRef) {
-    const pt = screenPtFromEvent(event);
-    if (appState.ui.dragRef.kind === 'node') {
-      const node = appState.model.nodes.find((item) => item.id === appState.ui.dragRef.id);
-      if (!node) {
-        return;
-      }
-      const p = isoToScreen(node.position);
-      appState.ui.dragOffset = { x: p.x - pt.x, y: p.y - pt.y };
-    } else {
-      appState.ui.dragOffset = { x: pt.x, y: pt.y };
+    const node = appState.model.nodes.find((item) => item.id === nodeEl.dataset.nodeId);
+    if (!node) {
+      return;
     }
+    appState.ui.dragStartScreen = screenPtFromEvent(event);
+    appState.ui.dragOriginIso = { ...node.position };
   }
 });
 
@@ -820,48 +826,49 @@ window.addEventListener('mousemove', (event) => {
     return;
   }
 
-  if (!appState.ui.dragRef) {
+  if (!appState.ui.dragRef || appState.ui.dragRef.kind !== 'node') {
     return;
   }
 
-  if (appState.ui.dragRef.kind === 'node') {
-    const node = appState.model.nodes.find((item) => item.id === appState.ui.dragRef.id);
-    if (!node) {
-      return;
-    }
-    const targetScreen = { x: pt.x + appState.ui.dragOffset.x, y: pt.y + appState.ui.dragOffset.y };
-    const iso = screenToIso(targetScreen.x, targetScreen.y, node.position.z);
-    node.position.x = Math.round(iso.x / 20) * 20;
-    node.position.y = Math.round(iso.y / 20) * 20;
-
-    appState.model.edges.forEach((edge) => {
-      if (edge.from === node.id) {
-        edge.props.startElevation = node.position.z;
-        if (edge.props.lengthMode !== 'manual') {
-          ensureEdgeEngineering(edge);
-        }
-      }
-      if (edge.to === node.id) {
-        edge.props.endElevation = node.position.z;
-        if (edge.props.lengthMode !== 'manual') {
-          ensureEdgeEngineering(edge);
-        }
-      }
-    });
-
-    renderCanvas();
+  const node = appState.model.nodes.find((item) => item.id === appState.ui.dragRef.id);
+  if (!node || !appState.ui.dragStartScreen || !appState.ui.dragOriginIso) {
+    return;
   }
+
+  const snapped = constrainToCadDirections(appState.ui.dragStartScreen, pt);
+  const targetIso = screenToIso(snapped.x, snapped.y, appState.ui.dragOriginIso.z);
+  node.position.x = Math.round(targetIso.x / 20) * 20;
+  node.position.y = Math.round(targetIso.y / 20) * 20;
+
+  appState.model.edges.forEach((edge) => {
+    if (edge.from === node.id) {
+      edge.props.startElevation = node.position.z;
+      if (edge.props.lengthMode !== 'manual') {
+        ensureEdgeEngineering(edge);
+      }
+    }
+    if (edge.to === node.id) {
+      edge.props.endElevation = node.position.z;
+      if (edge.props.lengthMode !== 'manual') {
+        ensureEdgeEngineering(edge);
+      }
+    }
+  });
+
+  renderCanvas();
 });
 
 window.addEventListener('mouseup', () => {
   appState.ui.dragRef = null;
   appState.ui.isPanning = false;
+  appState.ui.dragStartScreen = null;
+  appState.ui.dragOriginIso = null;
 });
 
 svg.addEventListener('wheel', (event) => {
   event.preventDefault();
   const delta = event.deltaY > 0 ? -0.08 : 0.08;
-  appState.ui.zoom = Math.min(2.2, Math.max(0.45, appState.ui.zoom + delta));
+  appState.ui.zoom = Math.min(2.2, Math.max(0.4, appState.ui.zoom + delta));
   updateViewportTransform();
 });
 
@@ -871,6 +878,7 @@ document.getElementById('toolButtons').addEventListener('click', (event) => {
     return;
   }
   appState.ui.tool = button.dataset.tool;
+  appState.ui.panMode = false;
   appState.ui.drawStartNodeId = null;
   appState.ui.previewPoint = null;
   renderToolButtons();
@@ -884,7 +892,6 @@ document.getElementById('settingsBtn').addEventListener('click', () => document.
 document.getElementById('toggleAdvancedBtn').addEventListener('click', () => {
   appState.settings.advancedUnlocked = !appState.settings.advancedUnlocked;
   document.getElementById('toggleAdvancedBtn').textContent = `Advanced: ${appState.settings.advancedUnlocked ? 'Unlocked' : 'Locked'}`;
-  renderPropertyPanel();
   calcAndRender();
 });
 document.getElementById('densityFactorInput').addEventListener('input', (event) => {
@@ -896,6 +903,32 @@ document.getElementById('fanModeInput').addEventListener('change', (event) => {
   calcAndRender();
 });
 document.getElementById('exportDxfBtn').addEventListener('click', exportDxf);
+
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Delete' || event.key === 'Backspace') {
+    const isTyping = ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName || '');
+    if (!isTyping) {
+      event.preventDefault();
+      deleteSelected();
+    }
+  }
+  if (event.code === 'Space') {
+    appState.ui.panMode = true;
+    renderToolButtons();
+  }
+  if (event.key === 'Escape') {
+    appState.ui.drawStartNodeId = null;
+    appState.ui.previewPoint = null;
+    drawPreview();
+  }
+});
+
+document.addEventListener('keyup', (event) => {
+  if (event.code === 'Space') {
+    appState.ui.panMode = false;
+    renderToolButtons();
+  }
+});
 
 renderToolButtons();
 calcAndRender();
